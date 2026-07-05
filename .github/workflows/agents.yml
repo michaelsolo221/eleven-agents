@@ -1,0 +1,74 @@
+name: Agents CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+    branches: [main]
+
+env:
+  ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+
+jobs:
+  validate:
+    name: Validate agent configs
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install ElevenLabs CLI
+        run: npm install -g @elevenlabs/cli
+
+      - name: Validate JSON configs
+        run: |
+          for f in agent_configs/*.json; do
+            echo "Validating $f..."
+            python3 -c "import json; json.load(open('$f'))" || exit 1
+          done
+          echo "All configs are valid JSON"
+
+  push:
+    name: Push agents to ElevenLabs
+    needs: validate
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install ElevenLabs CLI
+        run: npm install -g @elevenlabs/cli
+
+      - name: Authenticate
+        run: echo "$ELEVENLABS_API_KEY" | elevenlabs auth login
+
+      - name: Push agents
+        run: elevenlabs agents push
+
+  test:
+    name: Run agent tests
+    needs: push
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install ElevenLabs CLI
+        run: npm install -g @elevenlabs/cli
+
+      - name: Authenticate
+        run: echo "$ELEVENLABS_API_KEY" | elevenlabs auth login
+
+      - name: Run tests
+        run: elevenlabs agents test --all

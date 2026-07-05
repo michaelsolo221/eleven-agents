@@ -1,0 +1,14 @@
+{
+    "name": "Receptionist collects appointment details correctly",
+    "type": "llm",
+    "chat_history": [
+        {
+            "role": "user",
+            "message": "I'd like to book an appointment for next Tuesday around 2pm if possible.",
+            "time_in_call_secs": 5
+        }
+    ],
+    "evaluation_criteria": "The agent should confirm the requested date and time, collect the caller's name and reason for the appointment, and summarize the details back before confirming.",
+    "success_example": "Sure! Next Tuesday at 2pm — let me check availability. Can I get your name and what the appointment is for?",
+    "failure_example": "OK, Tuesday at 2pm. Done."
+}

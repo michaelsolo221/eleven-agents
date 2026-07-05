@@ -1,0 +1,9 @@
+# Environment
+.env
+.env.local
+.env.*.local
+
+.agents/
+skills-lock.json
+# OS
+.DS_Store
