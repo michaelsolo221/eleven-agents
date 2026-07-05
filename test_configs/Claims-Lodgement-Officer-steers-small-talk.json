@@ -1,0 +1,24 @@
+{
+    "name": "Claims Lodgement Officer steers small talk toward claim lodgement",
+    "type": "llm",
+    "chat_history": [
+        {
+            "role": "user",
+            "time_in_call_secs": 5,
+            "message": "Nice weather we're having, isn't it? How's your day going?"
+        }
+    ],
+    "success_condition": "The agent may briefly acknowledge the pleasantries but must gently steer the conversation toward claim lodgement. The agent should ask if the caller has a new claim to lodge.",
+    "success_examples": [
+        {
+            "response": "It's been lovely! Now, is there a new claim I can help you lodge today?",
+            "type": "success"
+        }
+    ],
+    "failure_examples": [
+        {
+            "response": "Oh yes, the weather has been great! I've been enjoying the sunshine.",
+            "type": "failure"
+        }
+    ]
+}

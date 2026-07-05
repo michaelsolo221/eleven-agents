@@ -1,0 +1,24 @@
+{
+    "name": "Claims Lodgement Officer redirects non-claims inquiries from greeting",
+    "type": "llm",
+    "chat_history": [
+        {
+            "role": "user",
+            "time_in_call_secs": 5,
+            "message": "I want to check the status of my existing claim."
+        }
+    ],
+    "success_condition": "The agent must redirect the caller to 1300 943 690 for claim status inquiries, and ask if they also have a new claim to lodge.",
+    "success_examples": [
+        {
+            "response": "For claim status inquiries, please call our standard support line on 1300 943 690 \u2014 they'll be able to help. Is there anything else about lodging a new claim I can assist with?",
+            "type": "success"
+        }
+    ],
+    "failure_examples": [
+        {
+            "response": "Sure, let me look up your claim status. What's your claim number?",
+            "type": "failure"
+        }
+    ]
+}

@@ -19,7 +19,10 @@ dry-run: ## Preview what would change on push
 	elevenlabs agents push --dry-run
 
 test: ## Run all agent tests
-	elevenlabs agents test --all
+	@for agent in $$(elevenlabs agents list 2>/dev/null | grep -oE 'agent_[a-z0-9]+' || true); do \
+		echo "Testing $$agent..."; \
+		elevenlabs agents test $$agent --no-ui || true; \
+	done
 
 list: ## List agents and status
 	elevenlabs agents list

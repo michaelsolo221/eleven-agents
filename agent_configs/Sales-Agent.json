@@ -29,17 +29,20 @@
         "conversation": {
             "text_only": false,
             "max_duration_seconds": 600,
-            "client_events": ["audio", "interruption"]
+            "client_events": [
+                "audio",
+                "interruption"
+            ]
         },
         "language_presets": {},
         "agent": {
-            "first_message": "Hi there! I'm your sales assistant. How can I help you today — looking for product info, pricing, or something else?",
+            "first_message": "Hi there! I'm your sales assistant. How can I help you today \u2014 looking for product info, pricing, or something else?",
             "language": "en",
             "dynamic_variables": {
                 "dynamic_variable_placeholders": {}
             },
             "prompt": {
-                "prompt": "# Personality\nYou are a friendly, professional sales assistant for our company on WhatsApp.\n\n# Environment\nYou work on WhatsApp, handling both text and voice messages from customers.\n\n# Tone\n- Warm and approachable, but not pushy\n- Concise — this is WhatsApp, not email\n- Natural and conversational when responding to voice notes\n- Use the customer's name if you know it\n\n# Goal\n1. Answer questions about products, services, and pricing\n2. Help customers find what they need\n3. Guide them toward a purchase decision\n4. Handle objections gracefully\n5. For complex inquiries, offer to connect them with a human sales rep\n\n# Guardrails\n- If you don't know something, say so honestly — never fabricate product details or pricing\n- Never share internal pricing structures or competitor comparisons\n- Do not make promises about delivery dates or stock without confirming via tools\n- Keep responses under 3 sentences unless the user asks for details",
+                "prompt": "# Personality\nYou are a friendly, professional sales assistant for our company on WhatsApp.\n\n# Environment\nYou work on WhatsApp, handling both text and voice messages from customers.\n\n# Tone\n- Warm and approachable, but not pushy\n- Concise \u2014 this is WhatsApp, not email\n- Natural and conversational when responding to voice notes\n- Use the customer's name if you know it\n\n# Goal\n1. Answer questions about products, services, and pricing\n2. Help customers find what they need\n3. Guide them toward a purchase decision\n4. Handle objections gracefully\n5. For complex inquiries, offer to connect them with a human sales rep\n\n# Guardrails\n- If you don't know something, say so honestly \u2014 never fabricate product details or pricing\n- Never share internal pricing structures or competitor comparisons\n- Do not make promises about delivery dates or stock without confirming via tools\n- Keep responses under 3 sentences unless the user asks for details",
                 "llm": "gemini-2.5-flash",
                 "temperature": 0.7,
                 "max_tokens": -1,
@@ -78,21 +81,39 @@
         },
         "guardrails": {
             "version": "1",
-            "focus": { "is_enabled": true },
-            "prompt_injection": { "is_enabled": true },
+            "focus": {
+                "is_enabled": true
+            },
+            "prompt_injection": {
+                "is_enabled": true
+            },
             "content": {
                 "config": {
-                    "harassment": { "is_enabled": true, "threshold": 0.5 },
-                    "profanity": { "is_enabled": true, "threshold": 0.5 }
+                    "harassment": {
+                        "is_enabled": true,
+                        "threshold": 0.5
+                    },
+                    "profanity": {
+                        "is_enabled": true,
+                        "threshold": 0.5
+                    }
                 }
             },
-            "custom": { "config": { "configs": [] } }
+            "custom": {
+                "config": {
+                    "configs": []
+                }
+            }
         },
         "widget": {
             "variant": "full",
             "placement": "bottom-right",
             "expandable": "never",
-            "avatar": { "type": "orb", "color_1": "#2792dc", "color_2": "#9ce6e6" },
+            "avatar": {
+                "type": "orb",
+                "color_1": "#2792dc",
+                "color_2": "#9ce6e6"
+            },
             "feedback_mode": "none",
             "bg_color": "#ffffff",
             "text_color": "#000000",
@@ -115,12 +136,18 @@
         "data_collection": {},
         "overrides": {
             "conversation_config_override": {
-                "tts": { "voice_id": false },
-                "conversation": { "text_only": true },
+                "tts": {
+                    "voice_id": false
+                },
+                "conversation": {
+                    "text_only": true
+                },
                 "agent": {
                     "first_message": false,
                     "language": false,
-                    "prompt": { "prompt": false }
+                    "prompt": {
+                        "prompt": false
+                    }
                 }
             },
             "custom_llm_extra_body": false,
@@ -140,7 +167,9 @@
             "zero_retention_mode": false
         },
         "workspace_overrides": {
-            "webhooks": { "post_call_webhook_id": null },
+            "webhooks": {
+                "post_call_webhook_id": null
+            },
             "conversation_initiation_client_data_webhook": null
         },
         "safety": {
@@ -148,7 +177,13 @@
             "is_blocked_non_ivc": false,
             "ignore_safety_evaluation": false
         },
-        "testing": { "attached_tests": [] },
+        "testing": {
+            "attached_tests": [
+                {
+                    "test_id": "test_6101kws9q7r9erw96asrb9ar76bj"
+                }
+            ]
+        },
         "ban": null
     },
     "tags": []

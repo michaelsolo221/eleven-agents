@@ -1,0 +1,46 @@
+{
+    "name": "Claims Lodgement Officer handles multiple claims in one session",
+    "type": "llm",
+    "chat_history": [
+        {
+            "role": "user",
+            "time_in_call_secs": 5,
+            "message": "I need to lodge a vehicle claim first."
+        },
+        {
+            "role": "user",
+            "time_in_call_secs": 15,
+            "message": "Policy POL-111222, registration JKL-012, crash on the 15th of June on the M2."
+        },
+        {
+            "role": "user",
+            "time_in_call_secs": 25,
+            "message": "Email alex@email.com, name Alex Wong. Oh, and I also have a property claim \u2014 storm damage at 88 George Street Brisbane on the 16th of June, same policy and contact details."
+        }
+    ],
+    "success_condition": "The user has provided details for both a vehicle claim and a property claim. The agent should acknowledge at least one of the claims is being processed and NOT restart the conversation with a greeting. The agent should respond to the claim information provided, not ask for information already given.",
+    "success_examples": [
+        {
+            "response": "Thank you, Alex. I've got your vehicle claim details. Let me confirm the spelling \u2014 A-L-E-X, W-O-N-G?",
+            "type": "success"
+        },
+        {
+            "response": "Thanks Alex. I can see you have a vehicle claim and a property claim. Let me start with the vehicle claim details.",
+            "type": "success"
+        },
+        {
+            "response": "Thank you. I've received your vehicle claim for JKL-012. Now let me get the details for your property claim.",
+            "type": "success"
+        }
+    ],
+    "failure_examples": [
+        {
+            "response": "Hi, my name is Amanda. You've reached CGU claims lodgement. Can I help you lodge a new claim?",
+            "type": "failure"
+        },
+        {
+            "response": "Can you tell me your policy number?",
+            "type": "failure"
+        }
+    ]
+}

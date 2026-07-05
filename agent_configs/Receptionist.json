@@ -29,7 +29,10 @@
         "conversation": {
             "text_only": false,
             "max_duration_seconds": 600,
-            "client_events": ["audio", "interruption"]
+            "client_events": [
+                "audio",
+                "interruption"
+            ]
         },
         "language_presets": {},
         "agent": {
@@ -39,7 +42,7 @@
                 "dynamic_variable_placeholders": {}
             },
             "prompt": {
-                "prompt": "# Personality\nYou are a professional, welcoming virtual receptionist on WhatsApp.\n\n# Environment\nYou work on WhatsApp, handling both text and voice messages from visitors and callers.\n\n# Tone\n- Polite and professional at all times\n- Efficient — WhatsApp conversations should feel quick and helpful\n- Warm but focused — friendly without being overly chatty\n\n# Goal\n1. Greet callers and visitors warmly\n2. Answer general inquiries (hours, location, services)\n3. Collect key details: name, reason for contact, preferred time\n4. Schedule and manage appointments when tools are available\n5. Route messages to the right department or person\n6. Take messages when staff is unavailable\n\n# Guardrails\n- Always confirm details back to the caller before acting\n- If unsure where to route, ask clarifying questions — never guess\n- Do not share internal contact details or schedules without authorization\n- Keep responses brief — confirm, act, summarize\n- If the request is outside your scope, offer to connect them with a human",
+                "prompt": "# Personality\nYou are a professional, welcoming virtual receptionist on WhatsApp.\n\n# Environment\nYou work on WhatsApp, handling both text and voice messages from visitors and callers.\n\n# Tone\n- Polite and professional at all times\n- Efficient \u2014 WhatsApp conversations should feel quick and helpful\n- Warm but focused \u2014 friendly without being overly chatty\n\n# Goal\n1. Greet callers and visitors warmly\n2. Answer general inquiries (hours, location, services)\n3. Collect key details: name, reason for contact, preferred time\n4. Schedule and manage appointments when tools are available\n5. Route messages to the right department or person\n6. Take messages when staff is unavailable\n\n# Guardrails\n- Always confirm details back to the caller before acting\n- If unsure where to route, ask clarifying questions \u2014 never guess\n- Do not share internal contact details or schedules without authorization\n- Keep responses brief \u2014 confirm, act, summarize\n- If the request is outside your scope, offer to connect them with a human",
                 "llm": "gemini-2.5-flash",
                 "temperature": 0.7,
                 "max_tokens": -1,
@@ -78,21 +81,39 @@
         },
         "guardrails": {
             "version": "1",
-            "focus": { "is_enabled": true },
-            "prompt_injection": { "is_enabled": true },
+            "focus": {
+                "is_enabled": true
+            },
+            "prompt_injection": {
+                "is_enabled": true
+            },
             "content": {
                 "config": {
-                    "harassment": { "is_enabled": true, "threshold": 0.5 },
-                    "profanity": { "is_enabled": true, "threshold": 0.5 }
+                    "harassment": {
+                        "is_enabled": true,
+                        "threshold": 0.5
+                    },
+                    "profanity": {
+                        "is_enabled": true,
+                        "threshold": 0.5
+                    }
                 }
             },
-            "custom": { "config": { "configs": [] } }
+            "custom": {
+                "config": {
+                    "configs": []
+                }
+            }
         },
         "widget": {
             "variant": "full",
             "placement": "bottom-right",
             "expandable": "never",
-            "avatar": { "type": "orb", "color_1": "#2792dc", "color_2": "#9ce6e6" },
+            "avatar": {
+                "type": "orb",
+                "color_1": "#2792dc",
+                "color_2": "#9ce6e6"
+            },
             "feedback_mode": "none",
             "bg_color": "#ffffff",
             "text_color": "#000000",
@@ -115,12 +136,18 @@
         "data_collection": {},
         "overrides": {
             "conversation_config_override": {
-                "tts": { "voice_id": false },
-                "conversation": { "text_only": true },
+                "tts": {
+                    "voice_id": false
+                },
+                "conversation": {
+                    "text_only": true
+                },
                 "agent": {
                     "first_message": false,
                     "language": false,
-                    "prompt": { "prompt": false }
+                    "prompt": {
+                        "prompt": false
+                    }
                 }
             },
             "custom_llm_extra_body": false,
@@ -140,7 +167,9 @@
             "zero_retention_mode": false
         },
         "workspace_overrides": {
-            "webhooks": { "post_call_webhook_id": null },
+            "webhooks": {
+                "post_call_webhook_id": null
+            },
             "conversation_initiation_client_data_webhook": null
         },
         "safety": {
@@ -148,7 +177,13 @@
             "is_blocked_non_ivc": false,
             "ignore_safety_evaluation": false
         },
-        "testing": { "attached_tests": [] },
+        "testing": {
+            "attached_tests": [
+                {
+                    "test_id": "test_8401kws9q7d3fjyrc6geq59nv3y4"
+                }
+            ]
+        },
         "ban": null
     },
     "tags": []

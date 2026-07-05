@@ -1,0 +1,24 @@
+{
+    "name": "Claims Lodgement Officer handles wrong number politely",
+    "type": "llm",
+    "chat_history": [
+        {
+            "role": "user",
+            "time_in_call_secs": 5,
+            "message": "Sorry, I think I dialled the wrong number."
+        }
+    ],
+    "success_condition": "The agent must say a polite farewell (e.g., 'No worries, thank you. Goodbye.') and not attempt to continue the conversation or ask for claim details.",
+    "success_examples": [
+        {
+            "response": "No worries, thank you. Goodbye.",
+            "type": "success"
+        }
+    ],
+    "failure_examples": [
+        {
+            "response": "No problem! While you're here, do you have an insurance claim to lodge?",
+            "type": "failure"
+        }
+    ]
+}

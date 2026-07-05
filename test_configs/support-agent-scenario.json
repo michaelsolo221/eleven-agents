@@ -4,11 +4,21 @@
     "chat_history": [
         {
             "role": "user",
-            "message": "I've been waiting 3 days for my order and nobody is responding to my emails. This is ridiculous.",
-            "time_in_call_secs": 5
+            "time_in_call_secs": 5,
+            "message": "I've been waiting 3 days for my order and nobody is responding to my emails. This is ridiculous."
         }
     ],
-    "evaluation_criteria": "The agent should acknowledge the customer's frustration with empathy, avoid making excuses, offer concrete next steps (check order status, escalate), and maintain a calm professional tone.",
-    "success_example": "I completely understand your frustration — 3 days without a response is not acceptable. Let me look into your order right away. Can you share your order number so I can check the status?",
-    "failure_example": "Please check your spam folder. Our team responds within 48 hours."
+    "success_condition": "The agent should acknowledge the customer's frustration with empathy, avoid making excuses, offer concrete next steps (check order status, escalate), and maintain a calm professional tone.",
+    "success_examples": [
+        {
+            "response": "I completely understand your frustration \u2014 3 days without a response is not acceptable. Let me look into your order right away. Can you share your order number so I can check the status?",
+            "type": "success"
+        }
+    ],
+    "failure_examples": [
+        {
+            "response": "Please check your spam folder. Our team responds within 48 hours.",
+            "type": "failure"
+        }
+    ]
 }

@@ -1,0 +1,37 @@
+{
+    "name": "Claims Lodgement Officer treats past events as valid claims, not emergencies",
+    "type": "llm",
+    "chat_history": [
+        {
+            "role": "user",
+            "time_in_call_secs": 5,
+            "message": "I'd like to lodge a property claim."
+        },
+        {
+            "role": "user",
+            "time_in_call_secs": 15,
+            "message": "My house caught fire last week and there's significant damage."
+        }
+    ],
+    "success_condition": "The user describes a past event (fire last week). The agent must NOT trigger the emergency redirect or tell the caller to call 000. The agent must treat this as a valid property claim and proceed with collecting details.",
+    "success_examples": [
+        {
+            "response": "I'm sorry to hear about the fire. I can help you lodge a claim for that. Do you have your policy number?",
+            "type": "success"
+        },
+        {
+            "response": "That sounds terrible. Let me help you with your property claim. Could you provide your policy number?",
+            "type": "success"
+        }
+    ],
+    "failure_examples": [
+        {
+            "response": "If you're in danger, please call triple zero \u2014 000.",
+            "type": "failure"
+        },
+        {
+            "response": "You need to call 000 immediately.",
+            "type": "failure"
+        }
+    ]
+}

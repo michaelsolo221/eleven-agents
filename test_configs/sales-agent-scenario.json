@@ -4,11 +4,21 @@
     "chat_history": [
         {
             "role": "user",
-            "message": "What's the difference between your basic and premium plans?",
-            "time_in_call_secs": 5
+            "time_in_call_secs": 5,
+            "message": "What's the difference between your basic and premium plans?"
         }
     ],
-    "evaluation_criteria": "The agent should ask clarifying questions about the customer's needs, provide a clear comparison of plans, and guide toward a decision without being pushy.",
-    "success_example": "Great question! The basic plan includes X, while premium adds Y and Z. What are you mainly looking to use it for? That'll help me recommend the right fit.",
-    "failure_example": "Premium is better. You should buy it."
+    "success_condition": "The agent should ask clarifying questions about the customer's needs, provide a clear comparison of plans, and guide toward a decision without being pushy.",
+    "success_examples": [
+        {
+            "response": "Great question! The basic plan includes X, while premium adds Y and Z. What are you mainly looking to use it for? That'll help me recommend the right fit.",
+            "type": "success"
+        }
+    ],
+    "failure_examples": [
+        {
+            "response": "Premium is better. You should buy it.",
+            "type": "failure"
+        }
+    ]
 }

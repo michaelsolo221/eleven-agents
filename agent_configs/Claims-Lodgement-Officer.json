@@ -1,0 +1,242 @@
+{
+    "name": "Claims Lodgement Officer",
+    "conversation_config": {
+        "asr": {
+            "quality": "high",
+            "provider": "scribe_realtime",
+            "user_input_audio_format": "pcm_16000",
+            "keywords": []
+        },
+        "turn": {
+            "turn_timeout": 7,
+            "silence_end_call_timeout": -1,
+            "turn_eagerness": "normal",
+            "turn_model": "turn_v3",
+            "mode": "turn"
+        },
+        "tts": {
+            "model_id": "eleven_flash_v2",
+            "voice_id": "pNInz6obpgDQGcFmaJgB",
+            "supported_voices": [],
+            "agent_output_audio_format": "pcm_16000",
+            "optimize_streaming_latency": 3,
+            "stability": 0.5,
+            "speed": 1,
+            "similarity_boost": 0.8,
+            "text_normalisation_type": "elevenlabs",
+            "pronunciation_dictionary_locators": []
+        },
+        "conversation": {
+            "text_only": false,
+            "max_duration_seconds": 600,
+            "client_events": [
+                "audio",
+                "interruption",
+                "agent_response",
+                "agent_chat_response_part"
+            ]
+        },
+        "language_presets": {},
+        "agent": {
+            "first_message": "Hi, my name is Amanda. You've reached CGU claims lodgement. Can I help you lodge a new claim?",
+            "language": "en",
+            "dynamic_variables": {
+                "dynamic_variable_placeholders": {}
+            },
+            "prompt": {
+                "prompt": "# Personality\nYou are Amanda, a CGU claims lodgement officer. You help customers lodge insurance claims over the phone and WhatsApp.\n\n# Environment\nYou work on phone and WhatsApp, handling both text and voice messages.\n\n# Tone\n- Professional, clear, and efficient\n- Empathetic when the customer is distressed\n- Use Australian English in your own speech (e.g., \"registration\" not \"rego\")\n\n# Goal\n1. Determine if the claim is about a vehicle or property\n2. Collect all required claim fields\n3. Verify name spelling\n4. Confirm completeness\n5. Lodge the claim and give closing message\n\n# First Interaction\nYour greeting is: \"Hi, my name is Amanda. You've reached CGU claims lodgement. Can I help you lodge a new claim?\"\n\nIf the caller says no or asks about something other than lodging a new claim, redirect them to 1300 943 690 for standard telephone support. Ask: \"Is there anything else about lodging a new claim I can help with?\"\n\n# Claim Types\nAsk upfront: \"Are you lodging a claim about a vehicle or a property?\"\n\n## Vehicle Claim Required Fields:\n1. Policy number\n2. What happened (free text)\n3. Date and time of incident\n4. Vehicle registration number\n5. Incident location (where the crash happened)\n6. Contact method (email OR phone)\n7. First name\n8. Last name\n\n## Property Claim Required Fields:\n1. Policy number\n2. What happened (free text)\n3. Date and time of incident\n4. Property address (serves as both risk asset and incident location)\n5. Contact method (email OR phone)\n6. First name\n7. Last name\n\n# Interaction Modes\n\n## Guided Flow\nAsk for each required field one at a time. Be conversational but efficient.\n\n## Express Lodgement\nIf the customer provides most information upfront, parse it. Then:\n1. Verify name spelling (always \u2014 first and last name)\n2. Check for missing fields\n3. Ask for any missing fields\n4. Proceed to lodgement\n\n# Verification\n- Always verify the spelling of the claimant's first and last name\n- Silently check all required fields against the checklist\n- If a field is missing, ask for it\n- Maximum 2 attempts per missing field, then lodge with whatever information is available\n- Policy number is best-effort \u2014 headless claims are acceptable\n\n# Closing\nAfter lodging, say: \"I've lodged your claim. Expect an email within 1 business day with your claim number. Is there anything else I can help with?\"\n\nIf they have another claim, start a new claim flow.\n\n# Guardrails\n\n## Emergency\nIf the caller explicitly states they are in danger or unsafe right now (e.g., \"I'm in danger\", \"it's unsafe right now\"), immediately say: \"Please call triple zero \u2014 000 \u2014 right now. They'll help you.\" Then end the call.\n\nDo NOT trigger on descriptions of past events. \"My house caught fire last week\" is a valid claim, not an emergency.\n\n## Non-Claims Inquiries\nFor claim status, policy changes, complaints, or general inquiries: redirect to 1300 943 690. Then ask if they also have a new claim to lodge.\n\n## Wrong Number\nIf the caller says they dialled the wrong number, say \"No worries, thank you. Goodbye.\" and end the call.\n\n## Small Talk\nAllow brief pleasantries. Gently steer toward claim lodgement. If the caller is clearly not lodging a claim, redirect to 1300 943 690.\n\n## WhatsApp Session Timeout\nFor WhatsApp text interactions, if the claimant stops responding for over 1 hour, end the session with: \"It looks like you've stepped away. This interaction is closing. If you'd like to lodge a claim, please start a new conversation.\"\n\n## Mid-Lodgement Hang-Up\nDo not try to prevent hang-ups. Collect data as efficiently as possible \u2014 if the caller hangs up, the system captures whatever was collected.\n\n\n# One Asset Per Claim\nExactly one risk asset per claim. If multiple assets are mentioned, treat as separate claims.\n\n# Multiple Claims\nAfter lodging a claim, ask if there's another claim to lodge.\n\n# Nominated Representative\nThe contact person is whoever we can speak to \u2014 may be the policyholder or a nominated representative (family member, fleet manager). Just capture their name as the point of contact.",
+                "llm": "gemini-2.5-flash",
+                "temperature": 0.7,
+                "max_tokens": -1,
+                "tool_ids": [],
+                "mcp_server_ids": [],
+                "native_mcp_server_ids": [],
+                "knowledge_base": [],
+                "ignore_default_personality": false,
+                "built_in_tools": {
+                    "end_call": {
+                        "name": "end_call",
+                        "params": {
+                            "system_tool_type": "end_call"
+                        }
+                    }
+                },
+                "rag": {
+                    "enabled": false,
+                    "embedding_model": "e5_mistral_7b_instruct",
+                    "max_vector_distance": 0.6,
+                    "max_documents_length": 50000,
+                    "max_retrieved_rag_chunks_count": 20
+                },
+                "custom_llm": null
+            }
+        }
+    },
+    "platform_settings": {
+        "auth": {
+            "enable_auth": false,
+            "allowlist": [],
+            "shareable_token": null
+        },
+        "evaluation": {
+            "criteria": []
+        },
+        "guardrails": {
+            "version": "1",
+            "focus": {
+                "is_enabled": true
+            },
+            "prompt_injection": {
+                "is_enabled": true
+            },
+            "content": {
+                "config": {
+                    "harassment": {
+                        "is_enabled": true,
+                        "threshold": 0.5
+                    },
+                    "profanity": {
+                        "is_enabled": true,
+                        "threshold": 0.5
+                    }
+                }
+            },
+            "custom": {
+                "config": {
+                    "configs": []
+                }
+            }
+        },
+        "widget": {
+            "variant": "full",
+            "placement": "bottom-right",
+            "expandable": "never",
+            "avatar": {
+                "type": "orb",
+                "color_1": "#2792dc",
+                "color_2": "#9ce6e6"
+            },
+            "feedback_mode": "none",
+            "bg_color": "#ffffff",
+            "text_color": "#000000",
+            "btn_color": "#000000",
+            "btn_text_color": "#ffffff",
+            "border_color": "#e1e1e1",
+            "focus_color": "#000000",
+            "shareable_page_show_terms": true,
+            "show_avatar_when_collapsed": false,
+            "disable_banner": false,
+            "mic_muting_enabled": false,
+            "transcript_enabled": false,
+            "text_input_enabled": true,
+            "text_contents": {},
+            "language_selector": false,
+            "supports_text_only": true,
+            "language_presets": {},
+            "styles": {}
+        },
+        "data_collection": {
+            "policy_number": {
+                "type": "string",
+                "description": "The policy number provided by the claimant"
+            },
+            "what_happened": {
+                "type": "string",
+                "description": "Description of the incident"
+            },
+            "incident_datetime": {
+                "type": "string",
+                "description": "Date and time of the incident"
+            },
+            "claim_type": {
+                "type": "string",
+                "description": "Whether the claim is for a vehicle or property"
+            },
+            "vehicle_registration": {
+                "type": "string",
+                "description": "Vehicle registration number (vehicle claims only)"
+            },
+            "property_address": {
+                "type": "string",
+                "description": "Property address \u2014 serves as both risk asset and incident location (property claims only)"
+            },
+            "incident_location": {
+                "type": "string",
+                "description": "Location where the incident occurred (vehicle claims only)"
+            },
+            "contact_method": {
+                "type": "string",
+                "description": "Contact method \u2014 email address or phone number"
+            },
+            "first_name": {
+                "type": "string",
+                "description": "Claimant's first name"
+            },
+            "last_name": {
+                "type": "string",
+                "description": "Claimant's last name"
+            }
+        },
+        "overrides": {
+            "conversation_config_override": {
+                "tts": {
+                    "voice_id": false
+                },
+                "conversation": {
+                    "text_only": true
+                },
+                "agent": {
+                    "first_message": false,
+                    "language": false,
+                    "prompt": {
+                        "prompt": false
+                    }
+                }
+            },
+            "custom_llm_extra_body": false,
+            "enable_conversation_initiation_client_data_from_webhook": false
+        },
+        "call_limits": {
+            "agent_concurrency_limit": -1,
+            "daily_limit": 100000,
+            "bursting_enabled": true
+        },
+        "privacy": {
+            "record_voice": true,
+            "retention_days": -1,
+            "delete_transcript_and_pii": false,
+            "delete_audio": false,
+            "apply_to_existing_conversations": false,
+            "zero_retention_mode": false
+        },
+        "workspace_overrides": {
+            "webhooks": {
+                "post_call_webhook_id": null
+            },
+            "conversation_initiation_client_data_webhook": null
+        },
+        "safety": {
+            "is_blocked_ivc": false,
+            "is_blocked_non_ivc": false,
+            "ignore_safety_evaluation": false
+        },
+        "testing": {
+            "attached_tests": [
+                {"test_id": "test_1101kws9q4g9e1q87vbvmgxxh87m"},
+                {"test_id": "test_2001kws9q4r4f25tk7kpnbv5e0v0"},
+                {"test_id": "test_4001kws9q4zgeqet27jjzj63tkak"},
+                {"test_id": "test_8401kws9q57efxpv8q22ggad7h9y"},
+                {"test_id": "test_0101kws9q5eqehtb2eb88xpnw6xw"},
+                {"test_id": "test_9401kws9q5ppfh7t3z18vzqhjdmg"},
+                {"test_id": "test_3401kws9q5yxffh97k3a47gnw05b"},
+                {"test_id": "test_4701kws9q65qfjsbfq3y6rs43trw"},
+                {"test_id": "test_9101kws9q6d0frwv8c4sk4xh6bpb"},
+                {"test_id": "test_3801kws9q6nmej4r974ptw6kzfsq"},
+                {"test_id": "test_6401kws9q6x4exm9ftcz0f5ckrk6"},
+                {"test_id": "test_7301kws9q75pee2arq5hj9edfvza"}
+            ]
+        },
+        "ban": null
+    },
+    "tags": []
+}

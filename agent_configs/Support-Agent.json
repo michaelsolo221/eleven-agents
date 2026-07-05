@@ -29,7 +29,12 @@
         "conversation": {
             "text_only": false,
             "max_duration_seconds": 600,
-            "client_events": ["audio", "interruption", "agent_response", "agent_chat_response_part"]
+            "client_events": [
+                "audio",
+                "interruption",
+                "agent_response",
+                "agent_chat_response_part"
+            ]
         },
         "language_presets": {},
         "agent": {
@@ -39,7 +44,7 @@
                 "dynamic_variable_placeholders": {}
             },
             "prompt": {
-                "prompt": "# Personality\nYou are a patient, empathetic customer support agent on WhatsApp.\n\n# Environment\nYou work on WhatsApp, handling both text and voice messages from customers who have questions or issues.\n\n# Tone\n- Empathetic and patient — customers often reach out when frustrated\n- Clear and organized — use numbered steps for troubleshooting\n- Reassuring — confirm you understand the issue before solving it\n\n# Goal\n1. Understand the customer's issue by asking clarifying questions\n2. Troubleshoot common problems with step-by-step guidance\n3. Answer FAQ questions accurately\n4. Confirm resolution before ending the conversation\n5. Escalate to a human agent when the issue is beyond your scope\n\n# Guardrails\n- Never share sensitive account info without proper verification\n- Do not guess or make up information — if unsure, escalate\n- Never process refunds or account changes without confirming identity\n- If a customer is abusive, politely offer to escalate to a supervisor\n- Keep responses under 3 sentences unless troubleshooting requires more",
+                "prompt": "# Personality\nYou are a patient, empathetic customer support agent on WhatsApp.\n\n# Environment\nYou work on WhatsApp, handling both text and voice messages from customers who have questions or issues.\n\n# Tone\n- Empathetic and patient \u2014 customers often reach out when frustrated\n- Clear and organized \u2014 use numbered steps for troubleshooting\n- Reassuring \u2014 confirm you understand the issue before solving it\n\n# Goal\n1. Understand the customer's issue by asking clarifying questions\n2. Troubleshoot common problems with step-by-step guidance\n3. Answer FAQ questions accurately\n4. Confirm resolution before ending the conversation\n5. Escalate to a human agent when the issue is beyond your scope\n\n# Guardrails\n- Never share sensitive account info without proper verification\n- Do not guess or make up information \u2014 if unsure, escalate\n- Never process refunds or account changes without confirming identity\n- If a customer is abusive, politely offer to escalate to a supervisor\n- Keep responses under 3 sentences unless troubleshooting requires more",
                 "llm": "gemini-2.5-flash",
                 "temperature": 0.7,
                 "max_tokens": -1,
@@ -78,21 +83,39 @@
         },
         "guardrails": {
             "version": "1",
-            "focus": { "is_enabled": true },
-            "prompt_injection": { "is_enabled": true },
+            "focus": {
+                "is_enabled": true
+            },
+            "prompt_injection": {
+                "is_enabled": true
+            },
             "content": {
                 "config": {
-                    "harassment": { "is_enabled": true, "threshold": 0.5 },
-                    "profanity": { "is_enabled": true, "threshold": 0.5 }
+                    "harassment": {
+                        "is_enabled": true,
+                        "threshold": 0.5
+                    },
+                    "profanity": {
+                        "is_enabled": true,
+                        "threshold": 0.5
+                    }
                 }
             },
-            "custom": { "config": { "configs": [] } }
+            "custom": {
+                "config": {
+                    "configs": []
+                }
+            }
         },
         "widget": {
             "variant": "full",
             "placement": "bottom-right",
             "expandable": "never",
-            "avatar": { "type": "orb", "color_1": "#2792dc", "color_2": "#9ce6e6" },
+            "avatar": {
+                "type": "orb",
+                "color_1": "#2792dc",
+                "color_2": "#9ce6e6"
+            },
             "feedback_mode": "none",
             "bg_color": "#ffffff",
             "text_color": "#000000",
@@ -115,12 +138,18 @@
         "data_collection": {},
         "overrides": {
             "conversation_config_override": {
-                "tts": { "voice_id": false },
-                "conversation": { "text_only": true },
+                "tts": {
+                    "voice_id": false
+                },
+                "conversation": {
+                    "text_only": true
+                },
                 "agent": {
                     "first_message": false,
                     "language": false,
-                    "prompt": { "prompt": false }
+                    "prompt": {
+                        "prompt": false
+                    }
                 }
             },
             "custom_llm_extra_body": false,
@@ -140,7 +169,9 @@
             "zero_retention_mode": false
         },
         "workspace_overrides": {
-            "webhooks": { "post_call_webhook_id": null },
+            "webhooks": {
+                "post_call_webhook_id": null
+            },
             "conversation_initiation_client_data_webhook": null
         },
         "safety": {
@@ -148,7 +179,13 @@
             "is_blocked_non_ivc": false,
             "ignore_safety_evaluation": false
         },
-        "testing": { "attached_tests": [] },
+        "testing": {
+            "attached_tests": [
+                {
+                    "test_id": "test_0101kws9q82jexw8ydzw5zvkzhpm"
+                }
+            ]
+        },
         "ban": null
     },
     "tags": []

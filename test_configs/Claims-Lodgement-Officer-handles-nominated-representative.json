@@ -1,0 +1,50 @@
+{
+    "name": "Claims Lodgement Officer handles nominated representative",
+    "type": "llm",
+    "chat_history": [
+        {
+            "role": "user",
+            "time_in_call_secs": 5,
+            "message": "I'm calling on behalf of my mum. She had a car accident."
+        },
+        {
+            "role": "user",
+            "time_in_call_secs": 15,
+            "message": "Policy POL-777666, registration GHI-789, happened on the 18th of June at 10am on the M4."
+        },
+        {
+            "role": "user",
+            "time_in_call_secs": 25,
+            "message": "Her address is 15 Smith Street, Melbourne. My name is Emily Park. My phone is 0400 111 222."
+        }
+    ],
+    "success_condition": "The caller is a nominated representative calling on behalf of the policyholder (their mum). The agent must NOT refuse to proceed or demand to speak to the policyholder directly. The agent must accept the caller as the point of contact and continue with the claim lodgement process.",
+    "success_examples": [
+        {
+            "response": "Thank you, Emily. Let me confirm the spelling \u2014 E-M-I-L-Y, P-A-R-K?",
+            "type": "success"
+        },
+        {
+            "response": "Thanks Emily. I'll use your details as the contact person. Is that E-M-I-L-Y, P-A-R-K?",
+            "type": "success"
+        },
+        {
+            "response": "No problem, Emily. I'll take your details as the contact. Let me verify your name spelling.",
+            "type": "success"
+        },
+        {
+            "response": "Thank you. I'll proceed with your details as the contact person for this claim.",
+            "type": "success"
+        }
+    ],
+    "failure_examples": [
+        {
+            "response": "I'll need to speak to the policyholder directly. Can you put your mum on the phone?",
+            "type": "failure"
+        },
+        {
+            "response": "Sorry, I can only speak to the policyholder about this claim.",
+            "type": "failure"
+        }
+    ]
+}
