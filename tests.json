@@ -74,21 +74,6 @@
             "config": "test_configs/Claims-Lodgement-Officer-handles-express-property-claim.json",
             "id": "test_a301kws9r3express_property",
             "type": "llm"
-        },
-        {
-            "config": "test_configs/receptionist-scenario.json",
-            "id": "test_8401kws9q7d3fjyrc6geq59nv3y4",
-            "type": "llm"
-        },
-        {
-            "config": "test_configs/sales-agent-scenario.json",
-            "id": "test_6101kws9q7r9erw96asrb9ar76bj",
-            "type": "llm"
-        },
-        {
-            "config": "test_configs/support-agent-scenario.json",
-            "id": "test_0101kws9q82jexw8ydzw5zvkzhpm",
-            "type": "llm"
         }
     ]
 }
