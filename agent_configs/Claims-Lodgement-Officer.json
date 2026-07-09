@@ -206,6 +206,10 @@
             "last_name": {
                 "type": "string",
                 "description": "Claimant's last name"
+            },
+            "nominated_representative": {
+                "type": "boolean",
+                "description": "Whether the caller is a nominated representative calling on behalf of the policyholder"
             }
         },
         "overrides": {
