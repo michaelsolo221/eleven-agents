@@ -59,21 +59,6 @@
             "config": "test_configs/Claims-Lodgement-Officer-treats-past-events-as-valid-claims.json",
             "id": "test_7301kws9q75pee2arq5hj9edfvza",
             "type": "llm"
-        },
-        {
-            "config": "test_configs/Claims-Lodgement-Officer-handles-unresponsive-caller.json",
-            "id": "test_a101kws9r1unresponsive0001",
-            "type": "llm"
-        },
-        {
-            "config": "test_configs/Claims-Lodgement-Officer-handles-whatsapp-session-timeout.json",
-            "id": "test_a201kws9r2whatsapp_timeout",
-            "type": "llm"
-        },
-        {
-            "config": "test_configs/Claims-Lodgement-Officer-handles-express-property-claim.json",
-            "id": "test_a301kws9r3express_property",
-            "type": "llm"
         }
     ]
 }

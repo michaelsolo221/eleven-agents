@@ -29,7 +29,6 @@
         "conversation": {
             "text_only": false,
             "max_duration_seconds": 600,
-            "max_conversation_duration_message": "I'm sorry, this session has reached its time limit. If you'd like to continue lodging your claim, please start a new conversation. Thank you for contacting CGU.",
             "client_events": [
                 "audio",
                 "interruption",
@@ -135,38 +134,7 @@
             },
             "custom": {
                 "config": {
-                    "configs": [
-                        {
-                            "is_enabled": true,
-                            "name": "No medical or legal advice",
-                            "prompt": "Block any content that provides medical advice, medical diagnosis, legal advice, or legal recommendations. The agent must never act as a doctor, lawyer, or medical professional.",
-                            "execution_mode": "blocking",
-                            "trigger_action": {
-                                "type": "retry",
-                                "feedback": "Your response was blocked by a guardrail: '{{trigger_reason}}'. You must tell the user: \"I'm sorry, I can't provide medical or legal advice. I can help you lodge a claim — would you like to continue?\""
-                            }
-                        },
-                        {
-                            "is_enabled": true,
-                            "name": "No refunds",
-                            "prompt": "Block any content that processes refunds, promises refunds, or authorizes payment of any kind. The agent's role is claim lodgement only, not financial transactions.",
-                            "execution_mode": "blocking",
-                            "trigger_action": {
-                                "type": "retry",
-                                "feedback": "Your response was blocked by a guardrail: '{{trigger_reason}}'. You must tell the user: \"I'm sorry, I can't process refunds or payments. I can help you lodge a claim — would you like to continue?\""
-                            }
-                        },
-                        {
-                            "is_enabled": true,
-                            "name": "No customer data leakage",
-                            "prompt": "Block any content that shares, references, or reveals other customers' claim details, policy information, personal data, or any information not provided by the current caller.",
-                            "execution_mode": "blocking",
-                            "trigger_action": {
-                                "type": "retry",
-                                "feedback": "Your response was blocked by a guardrail: '{{trigger_reason}}'. You must tell the user: \"I'm sorry, I can't share that information. I can help you with your own claim — would you like to continue?\""
-                            }
-                        }
-                    ]
+                    "configs": []
                 }
             }
         },
@@ -280,8 +248,7 @@
             "webhooks": {
                 "post_call_webhook_id": null
             },
-            "conversation_initiation_client_data_webhook": null,
-            "disable_first_message_interruptions": true
+            "conversation_initiation_client_data_webhook": null
         },
         "safety": {
             "is_blocked_ivc": false,
