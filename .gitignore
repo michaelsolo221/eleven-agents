@@ -5,9 +5,6 @@
 
 # CLI artifacts
 .agents/
-skills-lock.json
-tools.json
-tool_configs/
 
 # OS
 .DS_Store
