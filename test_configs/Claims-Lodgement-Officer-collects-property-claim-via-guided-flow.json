@@ -18,14 +18,14 @@
             "message": "The property is at 42 Wallaby Way, Sydney. Phone is 0412 345 678. Name David Tan."
         }
     ],
-    "success_condition": "The agent is mid-flow collecting a property claim. The last user message provides the address, contact, and name. The agent should acknowledge the details and either verify name spelling or confirm the claim is progressing.",
+    "success_condition": "The agent is mid-flow collecting a property claim. The last user message provides the address, contact, and name. The agent should acknowledge the details and either verify name spelling, confirm the claim is progressing, or transfer to the Claims Supervisor via transfer_to_agent (the supervisor will re-verify completeness and ask for anything genuinely missing before lodging). The agent should NOT restart with the greeting or ignore the information provided.",
     "success_examples": [
         {
-            "response": "Thank you, David. Let me confirm \u2014 is that D-A-V-I-D and T-A-N? I have all your details for the property at 42 Wallaby Way. I've lodged your claim.",
+            "response": "Thank you, David. Let me confirm — is that D-A-V-I-D and T-A-N? I have all your details for the property at 42 Wallaby Way. I've lodged your claim.",
             "type": "success"
         },
         {
-            "response": "Thanks David. I've got your property address and contact details. Let me confirm the spelling \u2014 D-A-V-I-D, T-A-N?",
+            "response": "Thanks David. I've got your property address and contact details. Let me confirm the spelling — D-A-V-I-D, T-A-N?",
             "type": "success"
         }
     ],

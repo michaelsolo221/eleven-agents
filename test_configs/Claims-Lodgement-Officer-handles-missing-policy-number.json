@@ -13,10 +13,10 @@
             "message": "Registration DEF-456, crash yesterday on the M5. Email tom@email.com, name Tom Lee."
         }
     ],
-    "success_condition": "The user does not have their policy number. The agent should NOT keep asking for it. The agent should proceed with the available information and indicate the claim is being lodged without the policy number.",
+    "success_condition": "The user does not have their policy number. The agent should NOT keep asking for it. The agent should proceed with the available information — either continuing to collect remaining fields, or transferring to the Claims Supervisor via transfer_to_agent if everything else is genuinely complete (the supervisor will confirm the claim without the policy number, since policy number is best-effort).",
     "success_examples": [
         {
-            "response": "No worries, we can look that up later. I've got your registration DEF-456, the crash on the M5, and your contact details. Let me confirm \u2014 T-O-M, L-E-E? I've lodged your claim.",
+            "response": "No worries, we can look that up later. I've got your registration DEF-456, the crash on the M5, and your contact details. Let me confirm — T-O-M, L-E-E? I've lodged your claim.",
             "type": "success"
         },
         {

@@ -60,16 +60,28 @@ _Avoid_: Mag dump, fast mode, quick lodgement
 
 ## Verification & Escalation
 
+**Claims Officer**:
+The Agent that conducts intake — "Amanda". A separate registered ElevenLabs Agent, not a persona within a larger agent. Owns the greeting, Guided Flow / Express Lodgement, and every guardrail except final lodgement itself. Never declares a claim lodged and, since it never receives that instruction, should never say so.
+_Avoid_: The agent, the bot, the assistant
+
+**Claims Supervisor**:
+A second, separate registered Agent that the Claims Officer hands the call to once it believes intake is complete. Its only job is to re-verify completeness against the actual conversation transcript — not against the officer's own belief — and either confirm and lodge the claim, or collect whatever is genuinely missing. It is the only agent that ever tells a claimant their claim has been lodged.
+_Avoid_: QA agent, reviewer, validator agent
+
+**Transfer**:
+The hand-off from the Claims Officer to the Claims Supervisor, via the `transfer_to_agent` mechanism — a genuine switch to a different Agent, not a change of persona within one agent. See `docs/adr/0002-claims-supervisor-as-separate-agent.md` for why this replaced an earlier same-agent workflow-node design that didn't work in practice.
+_Avoid_: Handoff (fine informally, but "Transfer" is the term used in config and should be used consistently in prompts/docs), escalation
+
 **Completeness Check**:
-The Claims Officer's own silent check of captured data against the required field set, performed as it collects fields. If fields are missing, the officer asks for them. After two failed attempts for any single field, the officer is expected to lodge with whatever is available — this fallback is not reliably honored yet (see [[claims-lodgement-officer-supervisor-workflow-adr]]).
+The Claims Officer's own silent check of captured data against the required field set, performed as it collects fields. If fields are missing, the officer asks for them. After two failed attempts for any single field, the officer is expected to lodge with whatever is available. This is the Officer's own judgment and can be wrong — see Supervisor Review.
 _Avoid_: Validation, data check
 
 **Supervisor Review**:
-A second, independent completeness check performed by the Claims Supervisor persona after the Claims Officer believes intake is done — re-reading the actual transcript rather than trusting the officer's self-assessment. Exists specifically because the officer's own Completeness Check can be wrong: the officer may believe a field was collected, or believe the claim is complete, when it wasn't. Mirrors the officer's two-attempt-then-lodge-anyway rule for any fields it finds missing.
+A second, independent completeness check performed by the Claims Supervisor after the Transfer — re-reading the actual transcript rather than trusting the officer's self-assessment. Exists specifically because the officer's own Completeness Check can be wrong: the officer may believe a field was collected, or believe the claim is complete, when it wasn't, and may Transfer before intake is genuinely finished. Mirrors the officer's two-attempt-then-lodge-anyway rule for any fields it finds missing. The Supervisor Review can itself be wrong; see Completeness Guardrail.
 _Avoid_: Second check, double-check, QA pass
 
 **Completeness Guardrail**:
-An automatic check on every agent response, independent of both the Officer and the Supervisor, that blocks — and forces a retry of — any response which ends the call or declares the claim lodged while a required field is genuinely absent from the transcript. The last line of defense if both the officer's and the supervisor's own completeness judgment are wrong.
+An automatic check on every agent response, independent of both the Officer and the Supervisor, that blocks — and forces a retry of — any response which ends the call or declares the claim lodged while a required field is genuinely absent from the transcript. The last line of defense if both the officer's and the supervisor's own completeness judgment are wrong. Configured identically on both agents.
 _Avoid_: Safety check, content filter
 
 **Name Spelling Verification**:

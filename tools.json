@@ -1,9 +1,3 @@
 {
-    "tools": [
-        {
-            "type": "webhook",
-            "config": "tool_configs/submit_for_review.json",
-            "id": "tool_0001kx3c8f39e9gaadt73dqa9tg5"
-        }
-    ]
+    "tools": []
 }
