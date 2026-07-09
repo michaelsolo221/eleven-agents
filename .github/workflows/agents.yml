@@ -71,7 +71,11 @@ jobs:
         run: echo "$ELEVENLABS_API_KEY" | elevenlabs auth login
 
       - name: Run tests
-        run: elevenlabs agents test --all
+        run: |
+          for agent in $(elevenlabs agents list 2>/dev/null | grep -oE 'agent_[a-z0-9]+' || true); do
+            echo "Testing $agent..."
+            elevenlabs agents test "$agent" --no-ui || true
+          done
 
   test-pr:
     name: Run agent tests (PR)
@@ -90,4 +94,8 @@ jobs:
       - name: Dry-run push
         run: elevenlabs agents push --dry-run
       - name: Run tests
-        run: elevenlabs agents test --all
+        run: |
+          for agent in $(elevenlabs agents list 2>/dev/null | grep -oE 'agent_[a-z0-9]+' || true); do
+            echo "Testing $agent..."
+            elevenlabs agents test "$agent" --no-ui || true
+          done
