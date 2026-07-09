@@ -11,21 +11,14 @@ env:
 
 jobs:
   validate:
-    name: Validate agent configs
+    name: Validate configs
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: Install ElevenLabs CLI
-        run: npm install -g @elevenlabs/cli
-
       - name: Validate JSON configs
         run: |
-          for f in agent_configs/*.json; do
+          for f in agent_configs/*.json test_configs/*.json; do
             echo "Validating $f..."
             python3 -c "import json; json.load(open('$f'))" || exit 1
           done
@@ -71,11 +64,7 @@ jobs:
         run: echo "$ELEVENLABS_API_KEY" | elevenlabs auth login
 
       - name: Run tests
-        run: |
-          for agent in $(elevenlabs agents list 2>/dev/null | grep -oE 'agent_[a-z0-9]+' || true); do
-            echo "Testing $agent..."
-            elevenlabs agents test "$agent" --no-ui || true
-          done
+        run: bash scripts/run-tests.sh
 
   test-pr:
     name: Run agent tests (PR)
@@ -84,18 +73,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+
       - name: Install ElevenLabs CLI
         run: npm install -g @elevenlabs/cli
+
       - name: Authenticate
         run: echo "$ELEVENLABS_API_KEY" | elevenlabs auth login
+
       - name: Dry-run push
         run: elevenlabs agents push --dry-run
+
       - name: Run tests
-        run: |
-          for agent in $(elevenlabs agents list 2>/dev/null | grep -oE 'agent_[a-z0-9]+' || true); do
-            echo "Testing $agent..."
-            elevenlabs agents test "$agent" --no-ui || true
-          done
+        run: bash scripts/run-tests.sh

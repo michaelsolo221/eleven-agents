@@ -1,24 +1,6 @@
 {
     "agents": [
         {
-            "config": "agent_configs/Receptionist.json",
-            "id": "agent_1901kws2e13jfmdaeymzebjzann4",
-            "version_id": "agtvrsn_6501kwsa38m6f88a4nmz7jvbxb84",
-            "branch_id": "agtbrch_7401kws2e2q7egh9kswxds7p8pkw"
-        },
-        {
-            "config": "agent_configs/Sales-Agent.json",
-            "id": "agent_2001kws2gcsafh99vp971nqdcc13",
-            "version_id": "agtvrsn_4901kwsa3arhep69mr5g4ajxyq8a",
-            "branch_id": "agtbrch_3501kws2gdcnfdv9ncr6gb24a394"
-        },
-        {
-            "config": "agent_configs/Support-Agent.json",
-            "id": "agent_6501kws2gcrpfqwsg9nj0vcgcgqc",
-            "version_id": "agtvrsn_0501kwsa3d3dfb3b8c4bs9rn22a7",
-            "branch_id": "agtbrch_1901kws2gdf1f64vm6khry6k3y2m"
-        },
-        {
             "config": "agent_configs/Claims-Lodgement-Officer.json",
             "id": "agent_0201kws9cya0fpna5k8vz7cy99d8",
             "version_id": "agtvrsn_2501kwsa3f4pfp5rfg0kr9rekgdr",
