@@ -159,4 +159,4 @@ This gates the interaction: if the caller says "no" or asks about something else
 - The agent persona is "Amanda" — used in every greeting
 - The agent should use Australian English (e.g., "rego" is acceptable colloquially, but the agent should use "registration" in its own speech)
 - The `end_call` built-in tool should be available for emergency termination and unresponsive caller handling
-- The LLM should be `gemini-2.5-flash` (matching the existing agent pattern) with temperature 0.7
+- The LLM should be `qwen35-397b-a17b` with temperature 0.7
