@@ -1,338 +1,648 @@
 {
-  "name": "Claims Lodgement Officer",
-  "conversation_config": {
-    "asr": {
-      "quality": "high",
-      "provider": "scribe_realtime",
-      "user_input_audio_format": "pcm_16000",
-      "keywords": []
-    },
-    "turn": {
-      "turn_timeout": 7,
-      "silence_end_call_timeout": -1,
-      "turn_eagerness": "normal",
-      "turn_model": "turn_v3",
-      "mode": "turn"
-    },
-    "tts": {
-      "model_id": "eleven_flash_v2",
-      "voice_id": "0QT4OrDTvpDlUPmFsUWN",
-      "supported_voices": [],
-      "agent_output_audio_format": "pcm_16000",
-      "optimize_streaming_latency": 2,
-      "stability": 0.5,
-      "speed": 1,
-      "similarity_boost": 0.8,
-      "text_normalisation_type": "elevenlabs",
-      "pronunciation_dictionary_locators": []
-    },
-    "conversation": {
-      "text_only": false,
-      "max_duration_seconds": 600,
-      "client_events": [
-        "audio",
-        "interruption",
-        "agent_response",
-        "agent_chat_response_part"
-      ]
-    },
-    "language_presets": {},
-    "agent": {
-      "first_message": "Hi, my name is Amanda. You've reached CGU claims lodgement. Can I help you lodge a new claim?",
-      "language": "en",
-      "dynamic_variables": {
-        "dynamic_variable_placeholders": {}
-      },
-      "text_behavior_overrides": {
-        "whatsapp": {
-          "interaction_budget": "1_hour"
-        }
-      },
-      "prompt": {
-        "prompt": "# Personality\nYou are Amanda, a CGU claims lodgement officer. You help customers lodge insurance claims over the phone and WhatsApp.\n\n# Environment\nYou work on phone and WhatsApp, handling both text and voice messages.\n\n# Current Date and Time\nThe current date and time is: {{system__time}}\nUse this to interpret relative time references like \"today\", \"yesterday\", \"last week\".\n\n# Tone\n- Professional, clear, and efficient\n- Empathetic when the customer is distressed\n- Use Australian English in your own speech (e.g., \"registration\" not \"rego\")\n- When writing numbers, write them as words so they are spoken naturally. For example, write \"two hundred and seven\" not \"207\" for street addresses. Exception: phone numbers, policy numbers, and registration numbers should remain as digits (e.g., \"0404 991 625\", \"24F36A\").\n\n# Goal\n1. Determine if the claim is about a vehicle or property\n2. Collect all required claim fields\n3. Verify name spelling\n4. Confirm completeness\n5. Lodge the claim and give closing message\n\n# First Interaction\nYour greeting is: \"Hi, my name is Amanda. You've reached CGU claims lodgement. Can I help you lodge a new claim?\"\n\nIf the caller says no or asks about something other than lodging a new claim, redirect them to 1300 943 690 for standard telephone support. Ask: \"Is there anything else about lodging a new claim I can help with?\"\n\n# Claim Types\nAsk upfront: \"Are you lodging a claim about a vehicle or a property?\"\n\n## Vehicle Claim Required Fields:\n1. Policy number\n2. What happened (free text)\n3. Date and time of incident\n4. Vehicle registration number\n5. Incident location (where the crash happened)\n6. Contact method (email OR phone)\n7. First name\n8. Last name\n\n## Property Claim Required Fields:\n1. Policy number\n2. What happened (free text)\n3. Date and time of incident\n4. Property address (serves as both risk asset and incident location)\n5. Contact method (email OR phone)\n6. First name\n7. Last name\n\n# Interaction Modes\n\n## Guided Flow\nAsk for each required field one at a time. Be conversational but efficient.\n\n## Express Lodgement\nIf the customer provides most information upfront, parse it. Then:\n1. Verify name spelling (always \u2014 first and last name)\n2. Check for missing fields\n3. Ask for any missing fields\n4. Proceed to lodgement\n\n# Verification\n- Always verify the spelling of the claimant's first and last name\n- Silently check all required fields against the checklist\n- If a field is missing, ask for it\n- Maximum 2 attempts per missing field, then lodge with whatever information is available\n- Policy number is best-effort \u2014 headless claims are acceptable\n\n# Closing \u2014 Submit for Review\nThis step is important. When you believe you have collected ALL required fields for the claim, call the submit_for_review tool. Do NOT end the call yourself \u2014 a supervisor will review the details and confirm with the caller.\n\nBefore calling submit_for_review, silently verify you have:\n- Claim type (vehicle or property)\n- Policy number\n- What happened\n- Date and time of incident\n- Registration number (vehicle) or property address (property)\n- Incident location (vehicle only)\n- Contact method (email or phone)\n- First name and last name (with spelling confirmed)\n\nIf you are unsure whether you have all fields, ask the caller \u2014 do NOT guess.\n\nIf they have another claim after the supervisor confirms, start a new claim flow.\n\n# Guardrails\n\n## Emergency\nIf the caller explicitly states they are in danger or unsafe right now (e.g., \"I'm in danger\", \"it's unsafe right now\"), immediately say: \"Please call triple zero \u2014 000 \u2014 right now. They'll help you.\" Then end the call.\n\nDo NOT trigger on descriptions of past events. \"My house caught fire last week\" is a valid claim, not an emergency.\n\n## Non-Claims Inquiries\nFor claim status, policy changes, complaints, or general inquiries: redirect to 1300 943 690. Then ask if they also have a new claim to lodge.\n\n## Wrong Number\nIf the caller says they dialled the wrong number, say \"No worries, thank you. Goodbye.\" and end the call.\n\n## Small Talk\nAllow brief pleasantries. Gently steer toward claim lodgement. If the caller is clearly not lodging a claim, redirect to 1300 943 690.\n\n## WhatsApp Session Timeout\nFor WhatsApp text interactions, if the claimant stops responding for over 1 hour, end the session with: \"It looks like you've stepped away. This interaction is closing. If you'd like to lodge a claim, please start a new conversation.\"\n\n## Mid-Lodgement Hang-Up\nDo not try to prevent hang-ups. Collect data as efficiently as possible \u2014 if the caller hangs up, the system captures whatever was collected.\n\n\n# One Asset Per Claim\nExactly one risk asset per claim. If multiple assets are mentioned, treat as separate claims.\n\n# Multiple Claims\nAfter lodging a claim, ask if there's another claim to lodge.\n\n# Nominated Representative\nThe contact person is whoever we can speak to \u2014 may be the policyholder or a nominated representative (family member, fleet manager). Just capture their name as the point of contact.",
-        "llm": "qwen35-397b-a17b",
-        "temperature": 0.7,
-        "max_tokens": -1,
-        "tool_ids": [],
-        "mcp_server_ids": [],
-        "native_mcp_server_ids": [],
-        "knowledge_base": [],
-        "ignore_default_personality": false,
-        "built_in_tools": {
-          "end_call": {
-            "name": "end_call",
-            "params": {
-              "system_tool_type": "end_call"
+    "name": "Claims Lodgement Officer",
+    "conversation_config": {
+        "asr": {
+            "quality": "high",
+            "provider": "scribe_realtime",
+            "user_input_audio_format": "pcm_16000",
+            "keywords": []
+        },
+        "turn": {
+            "turn_timeout": 7,
+            "silence_end_call_timeout": -1,
+            "mode": "turn",
+            "turn_eagerness": "normal",
+            "spelling_patience": "auto",
+            "speculative_turn": false,
+            "retranscribe_on_turn_timeout": false,
+            "turn_model": "turn_v3",
+            "interruption_ignore_terms": [],
+            "interruption_ignore_term_languages": [],
+            "transcribe_on_disabled_interruptions": false,
+            "soft_timeout_config": {
+                "timeout_seconds": -1,
+                "message": "Hhmmmm...yeah.",
+                "additional_soft_timeout_messages": [],
+                "use_llm_generated_message": false,
+                "randomize_fillers": false,
+                "max_soft_timeouts_per_generation": 1
             }
-          }
         },
-        "rag": {
-          "enabled": false,
-          "embedding_model": "e5_mistral_7b_instruct",
-          "max_vector_distance": 0.6,
-          "max_documents_length": 50000,
-          "max_retrieved_rag_chunks_count": 20
-        },
-        "custom_llm": null,
-        "timezone": "Australia/Sydney",
-        "tools": [
-          {
-            "type": "webhook",
-            "name": "submit_for_review",
-            "description": "Call this when you have collected all required claim fields and are ready for the supervisor to validate. Do NOT call this until you have: claim type, policy number, what happened, date/time, registration or property address, incident location, contact method, first name, and last name.",
-            "api_schema": {
-              "url": "https://httpbin.org/post",
-              "method": "POST",
-              "request_body_schema": {
-                "type": "object",
-                "properties": {
-                  "claim_type": {
-                    "type": "string",
-                    "description": "vehicle or property"
-                  },
-                  "status": {
-                    "type": "string",
-                    "description": "ready_for_review"
-                  }
-                },
-                "required": [
-                  "claim_type",
-                  "status"
-                ]
-              }
-            }
-          }
-        ]
-      }
-    }
-  },
-  "platform_settings": {
-    "auth": {
-      "enable_auth": false,
-      "allowlist": [],
-      "shareable_token": null
-    },
-    "evaluation": {
-      "criteria": [
-        {
-          "id": "asks-vehicle-or-property-upfront",
-          "name": "Asks vehicle or property upfront",
-          "type": "prompt",
-          "conversation_goal_prompt": "The agent asks the claimant whether their claim is about a vehicle or a property before collecting claim details. The agent does not proceed to gather specific fields until the claim type is determined."
-        },
-        {
-          "id": "collects-all-required-fields",
-          "name": "Collects all required fields",
-          "type": "prompt",
-          "conversation_goal_prompt": "The agent collects all required claim fields: policy number (best-effort), what happened, date/time of incident, risk asset (vehicle registration or property address), incident location (vehicle claims), contact method (email or phone), first name, and last name. The agent does not skip required fields without attempting to collect them."
-        },
-        {
-          "id": "verifies-name-spelling",
-          "name": "Verifies name spelling",
-          "type": "prompt",
-          "conversation_goal_prompt": "The agent explicitly confirms the spelling of the claimant's first name and last name. This occurs regardless of whether the interaction is guided flow or express lodgement."
-        },
-        {
-          "id": "gives-correct-closing-message",
-          "name": "Gives correct closing message",
-          "type": "prompt",
-          "conversation_goal_prompt": "After lodging the claim, the agent tells the claimant to expect an email within 1 business day with their claim number. The agent uses language consistent with 'I've lodged your claim. Expect an email within 1 business day with your claim number.'"
-        }
-      ]
-    },
-    "guardrails": {
-      "version": "1",
-      "focus": {
-        "is_enabled": true
-      },
-      "prompt_injection": {
-        "is_enabled": true
-      },
-      "content": {
-        "config": {
-          "harassment": {
-            "is_enabled": true,
-            "threshold": 0.5
-          },
-          "profanity": {
-            "is_enabled": true,
-            "threshold": 0.5
-          }
-        }
-      },
-      "custom": {
-        "config": {
-          "configs": []
-        }
-      }
-    },
-    "widget": {
-      "variant": "full",
-      "placement": "bottom-right",
-      "expandable": "never",
-      "avatar": {
-        "type": "orb",
-        "color_1": "#2792dc",
-        "color_2": "#9ce6e6"
-      },
-      "feedback_mode": "none",
-      "bg_color": "#ffffff",
-      "text_color": "#000000",
-      "btn_color": "#000000",
-      "btn_text_color": "#ffffff",
-      "border_color": "#e1e1e1",
-      "focus_color": "#000000",
-      "shareable_page_show_terms": true,
-      "show_avatar_when_collapsed": false,
-      "disable_banner": false,
-      "mic_muting_enabled": false,
-      "transcript_enabled": false,
-      "text_input_enabled": true,
-      "text_contents": {},
-      "language_selector": false,
-      "supports_text_only": true,
-      "language_presets": {},
-      "styles": {}
-    },
-    "data_collection": {
-      "policy_number": {
-        "type": "string",
-        "description": "The policy number provided by the claimant"
-      },
-      "what_happened": {
-        "type": "string",
-        "description": "Description of the incident"
-      },
-      "incident_datetime": {
-        "type": "string",
-        "description": "Date and time of the incident"
-      },
-      "claim_type": {
-        "type": "string",
-        "description": "Whether the claim is for a vehicle or property"
-      },
-      "vehicle_registration": {
-        "type": "string",
-        "description": "Vehicle registration number (vehicle claims only)"
-      },
-      "property_address": {
-        "type": "string",
-        "description": "Property address \u2014 serves as both risk asset and incident location (property claims only)"
-      },
-      "incident_location": {
-        "type": "string",
-        "description": "Location where the incident occurred (vehicle claims only)"
-      },
-      "contact_method": {
-        "type": "string",
-        "description": "Contact method \u2014 email address or phone number"
-      },
-      "first_name": {
-        "type": "string",
-        "description": "Claimant's first name"
-      },
-      "last_name": {
-        "type": "string",
-        "description": "Claimant's last name"
-      },
-      "nominated_representative": {
-        "type": "boolean",
-        "description": "Whether the caller is a nominated representative calling on behalf of the policyholder"
-      }
-    },
-    "overrides": {
-      "conversation_config_override": {
         "tts": {
-          "voice_id": false
+            "model_id": "eleven_flash_v2",
+            "voice_id": "0QT4OrDTvpDlUPmFsUWN",
+            "supported_voices": [],
+            "expressive_mode": false,
+            "suggested_audio_tags": [],
+            "agent_output_audio_format": "pcm_16000",
+            "optimize_streaming_latency": 2,
+            "stability": 0.5,
+            "speed": 1,
+            "similarity_boost": 0.8,
+            "text_normalisation_type": "elevenlabs",
+            "pronunciation_dictionary_locators": [],
+            "enable_phoneme_tags": false,
+            "audio_filter": null
         },
         "conversation": {
-          "text_only": true
+            "text_only": false,
+            "max_duration_seconds": 600,
+            "client_events": [
+                "audio",
+                "interruption",
+                "agent_response",
+                "agent_chat_response_part"
+            ],
+            "file_input": {
+                "enabled": true,
+                "max_files_per_conversation": 10
+            },
+            "monitoring_enabled": false,
+            "monitoring_events": [
+                "user_transcript",
+                "agent_response",
+                "agent_response_correction"
+            ],
+            "dtmf_input_settings": null,
+            "background_sound": {
+                "volume": 0.6,
+                "crossfade_loop": false
+            },
+            "source_attribution": false
+        },
+        "language_presets": {},
+        "vad": {
+            "background_voice_detection": false
         },
         "agent": {
-          "first_message": false,
-          "language": false,
-          "prompt": {
-            "prompt": false
-          }
+            "first_message": "Hi, my name is Amanda. You've reached CGU claims lodgement. Can I help you lodge a new claim?",
+            "language": "en",
+            "hinglish_mode": false,
+            "dynamic_variables": {
+                "dynamic_variable_placeholders": {}
+            },
+            "disable_first_message_interruptions": false,
+            "max_conversation_duration_message": "",
+            "text_behavior_overrides": {
+                "whatsapp": {
+                    "interaction_budget": "1_hour"
+                }
+            },
+            "prompt": {
+                "prompt": "# Personality\nYou are Amanda, a CGU claims lodgement officer. You help customers lodge insurance claims over the phone and WhatsApp.\n\n# Environment\nYou work on phone and WhatsApp, handling both text and voice messages.\n\n# Current Date and Time\nThe current date and time is: {{system__time}}\nUse this to interpret relative time references like \"today\", \"yesterday\", \"last week\".\n\n# Tone\n- Professional, clear, and efficient\n- Empathetic when the customer is distressed\n- Use Australian English in your own speech (e.g., \"registration\" not \"rego\")\n- When writing numbers, write them as words so they are spoken naturally. For example, write \"two hundred and seven\" not \"207\" for street addresses. Exception: phone numbers, policy numbers, and registration numbers should remain as digits (e.g., \"0404 991 625\", \"24F36A\").\n\n# Goal\n1. Determine if the claim is about a vehicle or property\n2. Collect all required claim fields\n3. Verify name spelling\n4. Confirm completeness\n5. Lodge the claim and give closing message\n\n# First Interaction\nYour greeting is: \"Hi, my name is Amanda. You've reached CGU claims lodgement. Can I help you lodge a new claim?\"\n\nIf the caller says no or asks about something other than lodging a new claim, redirect them to 1300 943 690 for standard telephone support. Ask: \"Is there anything else about lodging a new claim I can help with?\"\n\n# Claim Types\nAsk upfront: \"Are you lodging a claim about a vehicle or a property?\"\n\n## Vehicle Claim Required Fields:\n1. Policy number\n2. What happened (free text)\n3. Date and time of incident\n4. Vehicle registration number\n5. Incident location (where the crash happened)\n6. Contact method (email OR phone)\n7. First name\n8. Last name\n\n## Property Claim Required Fields:\n1. Policy number\n2. What happened (free text)\n3. Date and time of incident\n4. Property address (serves as both risk asset and incident location)\n5. Contact method (email OR phone)\n6. First name\n7. Last name\n\n# Interaction Modes\n\n## Guided Flow\nAsk for each required field one at a time. Be conversational but efficient.\n\n## Express Lodgement\nIf the customer provides most information upfront, parse it. Then:\n1. Verify name spelling (always — first and last name)\n2. Check for missing fields\n3. Ask for any missing fields\n4. Proceed to lodgement\n\n# Verification\n- Always verify the spelling of the claimant's first and last name\n- Silently check all required fields against the checklist\n- If a field is missing, ask for it\n- Maximum 2 attempts per missing field, then lodge with whatever information is available\n- Policy number is best-effort — headless claims are acceptable\n\n# Closing — Submit for Review\nThis step is important. When you believe you have collected ALL required fields for the claim, call the submit_for_review tool. Do NOT end the call yourself — a supervisor will review the details and confirm with the caller.\n\nBefore calling submit_for_review, silently verify you have:\n- Claim type (vehicle or property)\n- Policy number\n- What happened\n- Date and time of incident\n- Registration number (vehicle) or property address (property)\n- Incident location (vehicle only)\n- Contact method (email or phone)\n- First name and last name (with spelling confirmed)\n\nIf you are unsure whether you have all fields, ask the caller — do NOT guess.\n\nIf they have another claim after the supervisor confirms, start a new claim flow.\n\n# Guardrails\n\n## Emergency\nIf the caller explicitly states they are in danger or unsafe right now (e.g., \"I'm in danger\", \"it's unsafe right now\"), immediately say: \"Please call triple zero — 000 — right now. They'll help you.\" Then end the call.\n\nDo NOT trigger on descriptions of past events. \"My house caught fire last week\" is a valid claim, not an emergency.\n\n## Non-Claims Inquiries\nFor claim status, policy changes, complaints, or general inquiries: redirect to 1300 943 690. Then ask if they also have a new claim to lodge.\n\n## Wrong Number\nIf the caller says they dialled the wrong number, say \"No worries, thank you. Goodbye.\" and end the call.\n\n## Small Talk\nAllow brief pleasantries. Gently steer toward claim lodgement. If the caller is clearly not lodging a claim, redirect to 1300 943 690.\n\n## WhatsApp Session Timeout\nFor WhatsApp text interactions, if the claimant stops responding for over 1 hour, end the session with: \"It looks like you've stepped away. This interaction is closing. If you'd like to lodge a claim, please start a new conversation.\"\n\n## Mid-Lodgement Hang-Up\nDo not try to prevent hang-ups. Collect data as efficiently as possible — if the caller hangs up, the system captures whatever was collected.\n\n\n# One Asset Per Claim\nExactly one risk asset per claim. If multiple assets are mentioned, treat as separate claims.\n\n# Multiple Claims\nAfter lodging a claim, ask if there's another claim to lodge.\n\n# Nominated Representative\nThe contact person is whoever we can speak to — may be the policyholder or a nominated representative (family member, fleet manager). Just capture their name as the point of contact.",
+                "llm": "qwen35-397b-a17b",
+                "opener": null,
+                "enable_reasoning_summary": false,
+                "temperature": 0.7,
+                "max_tokens": -1,
+                "tool_ids": [
+                    "tool_0001kx3c8f39e9gaadt73dqa9tg5"
+                ],
+                "built_in_tools": {
+                    "end_call": {
+                        "type": "system",
+                        "name": "end_call",
+                        "description": "",
+                        "response_timeout_secs": 20,
+                        "disable_interruptions": false,
+                        "interruption_mode": "allow",
+                        "force_pre_tool_speech": false,
+                        "pre_tool_speech": "auto",
+                        "assignments": [],
+                        "tool_call_sound_behavior": "auto",
+                        "tool_error_handling_mode": "auto",
+                        "params": {
+                            "system_tool_type": "end_call"
+                        }
+                    },
+                    "update_state": null,
+                    "memory_entry_search": null,
+                    "memory_entry_create": null,
+                    "memory_entry_update": null,
+                    "memory_entry_delete": null,
+                    "agent_prompt_change": null,
+                    "procedure_update": null,
+                    "procedure_create": null,
+                    "procedure_delete": null,
+                    "transfer_to_genesys_chat": null,
+                    "run_subagent": null
+                },
+                "enable_parallel_tool_calls": false,
+                "mcp_server_ids": [],
+                "native_mcp_server_ids": [],
+                "knowledge_base": [],
+                "speech_engine": null,
+                "ignore_default_personality": false,
+                "rag": {
+                    "enabled": false,
+                    "embedding_model": "e5_mistral_7b_instruct",
+                    "optional_rag_enabled": false,
+                    "max_vector_distance": 0.6,
+                    "max_documents_length": 50000,
+                    "max_retrieved_rag_chunks_count": 20
+                },
+                "timezone": "Australia/Sydney",
+                "backup_llm_config": {
+                    "preference": "default"
+                },
+                "cascade_timeout_seconds": 8,
+                "tools": [
+                    {
+                        "type": "system",
+                        "name": "end_call",
+                        "description": "",
+                        "response_timeout_secs": 20,
+                        "disable_interruptions": false,
+                        "interruption_mode": "allow",
+                        "force_pre_tool_speech": false,
+                        "pre_tool_speech": "auto",
+                        "assignments": [],
+                        "tool_call_sound_behavior": "auto",
+                        "tool_error_handling_mode": "auto",
+                        "params": {
+                            "system_tool_type": "end_call"
+                        }
+                    }
+                ]
+            }
         }
-      },
-      "custom_llm_extra_body": false,
-      "enable_conversation_initiation_client_data_from_webhook": false
     },
-    "call_limits": {
-      "agent_concurrency_limit": -1,
-      "daily_limit": 100000,
-      "bursting_enabled": true
-    },
-    "privacy": {
-      "record_voice": true,
-      "retention_days": -1,
-      "delete_transcript_and_pii": false,
-      "delete_audio": false,
-      "apply_to_existing_conversations": false,
-      "zero_retention_mode": false
-    },
-    "workspace_overrides": {
-      "webhooks": {
-        "post_call_webhook_id": null
-      },
-      "conversation_initiation_client_data_webhook": null
-    },
-    "safety": {
-      "is_blocked_ivc": false,
-      "is_blocked_non_ivc": false,
-      "ignore_safety_evaluation": false
-    },
-    "testing": {
-      "attached_tests": [
-        {
-          "test_id": "test_1101kws9q4g9e1q87vbvmgxxh87m"
+    "platform_settings": {
+        "evaluation": {
+            "criteria": [
+                {
+                    "id": "asks-vehicle-or-property-upfront",
+                    "name": "Asks vehicle or property upfront",
+                    "type": "prompt",
+                    "conversation_goal_prompt": "The agent asks the claimant whether their claim is about a vehicle or a property before collecting claim details. The agent does not proceed to gather specific fields until the claim type is determined.",
+                    "use_knowledge_base": false,
+                    "scope": "conversation",
+                    "scoring_mode": "binary",
+                    "max_score": 100
+                },
+                {
+                    "id": "collects-all-required-fields",
+                    "name": "Collects all required fields",
+                    "type": "prompt",
+                    "conversation_goal_prompt": "The agent collects all required claim fields: policy number (best-effort), what happened, date/time of incident, risk asset (vehicle registration or property address), incident location (vehicle claims), contact method (email or phone), first name, and last name. The agent does not skip required fields without attempting to collect them.",
+                    "use_knowledge_base": false,
+                    "scope": "conversation",
+                    "scoring_mode": "binary",
+                    "max_score": 100
+                },
+                {
+                    "id": "verifies-name-spelling",
+                    "name": "Verifies name spelling",
+                    "type": "prompt",
+                    "conversation_goal_prompt": "The agent explicitly confirms the spelling of the claimant's first name and last name. This occurs regardless of whether the interaction is guided flow or express lodgement.",
+                    "use_knowledge_base": false,
+                    "scope": "conversation",
+                    "scoring_mode": "binary",
+                    "max_score": 100
+                },
+                {
+                    "id": "gives-correct-closing-message",
+                    "name": "Gives correct closing message",
+                    "type": "prompt",
+                    "conversation_goal_prompt": "After lodging the claim, the agent tells the claimant to expect an email within 1 business day with their claim number. The agent uses language consistent with 'I've lodged your claim. Expect an email within 1 business day with your claim number.'",
+                    "use_knowledge_base": false,
+                    "scope": "conversation",
+                    "scoring_mode": "binary",
+                    "max_score": 100
+                }
+            ]
         },
-        {
-          "test_id": "test_2001kws9q4r4f25tk7kpnbv5e0v0"
+        "widget": {
+            "variant": "full",
+            "placement": "bottom-right",
+            "expandable": "never",
+            "avatar": {
+                "type": "orb",
+                "color1": "#2792dc",
+                "color2": "#9ce6e6"
+            },
+            "feedback_mode": "none",
+            "end_feedback": {
+                "type": "rating"
+            },
+            "bg_color": "#ffffff",
+            "text_color": "#000000",
+            "btn_color": "#000000",
+            "btn_text_color": "#ffffff",
+            "border_color": "#e1e1e1",
+            "focus_color": "#000000",
+            "shareable_page_show_terms": true,
+            "show_avatar_when_collapsed": false,
+            "disable_banner": false,
+            "markdown_link_allowed_hosts": [],
+            "markdown_link_include_www": true,
+            "markdown_link_allow_http": true,
+            "mic_muting_enabled": false,
+            "transcript_enabled": false,
+            "text_input_enabled": true,
+            "conversation_mode_toggle_enabled": false,
+            "default_expanded": false,
+            "always_expanded": false,
+            "dismissible": false,
+            "show_agent_status": false,
+            "show_conversation_id": true,
+            "strip_audio_tags": true,
+            "text_contents": {},
+            "styles": {},
+            "language_selector": false,
+            "supports_text_only": true,
+            "language_presets": {}
         },
-        {
-          "test_id": "test_4001kws9q4zgeqet27jjzj63tkak"
+        "data_collection": {
+            "policy_number": {
+                "type": "string",
+                "description": "The policy number provided by the claimant",
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+            },
+            "what_happened": {
+                "type": "string",
+                "description": "Description of the incident",
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+            },
+            "incident_datetime": {
+                "type": "string",
+                "description": "Date and time of the incident",
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+            },
+            "claim_type": {
+                "type": "string",
+                "description": "Whether the claim is for a vehicle or property",
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+            },
+            "vehicle_registration": {
+                "type": "string",
+                "description": "Vehicle registration number (vehicle claims only)",
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+            },
+            "property_address": {
+                "type": "string",
+                "description": "Property address — serves as both risk asset and incident location (property claims only)",
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+            },
+            "incident_location": {
+                "type": "string",
+                "description": "Location where the incident occurred (vehicle claims only)",
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+            },
+            "contact_method": {
+                "type": "string",
+                "description": "Contact method — email address or phone number",
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+            },
+            "first_name": {
+                "type": "string",
+                "description": "Claimant's first name",
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+            },
+            "last_name": {
+                "type": "string",
+                "description": "Claimant's last name",
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+            },
+            "nominated_representative": {
+                "type": "boolean",
+                "description": "Whether the caller is a nominated representative calling on behalf of the policyholder",
+                "is_system_provided": false,
+                "dynamic_variable": "",
+                "allowed_values_dynamic_variable": "",
+                "constant_value": "",
+                "is_omitted": false
+            }
         },
-        {
-          "test_id": "test_8401kws9q57efxpv8q22ggad7h9y"
+        "data_collection_scopes": {},
+        "overrides": {
+            "conversation_config_override": {
+                "asr": {
+                    "keywords": false
+                },
+                "turn": {
+                    "soft_timeout_config": {
+                        "message": false
+                    }
+                },
+                "tts": {
+                    "voice_id": false,
+                    "stability": false,
+                    "speed": false,
+                    "similarity_boost": false
+                },
+                "conversation": {
+                    "text_only": true
+                },
+                "agent": {
+                    "first_message": false,
+                    "language": false,
+                    "max_conversation_duration_message": false,
+                    "prompt": {
+                        "prompt": false,
+                        "llm": false,
+                        "tool_ids": false,
+                        "native_mcp_server_ids": false,
+                        "knowledge_base": false
+                    }
+                }
+            },
+            "custom_llm_extra_body": false,
+            "enable_conversation_initiation_client_data_from_webhook": false,
+            "enable_starting_workflow_node_id_from_client": false
         },
-        {
-          "test_id": "test_0101kws9q5eqehtb2eb88xpnw6xw"
+        "workspace_overrides": {
+            "webhooks": {
+                "events": [
+                    "transcript"
+                ],
+                "transcript_format": "json",
+                "send_audio": false
+            }
         },
-        {
-          "test_id": "test_9401kws9q5ppfh7t3z18vzqhjdmg"
+        "testing": {
+            "attached_tests": [
+                {
+                    "test_id": "test_1101kws9q4g9e1q87vbvmgxxh87m"
+                },
+                {
+                    "test_id": "test_2001kws9q4r4f25tk7kpnbv5e0v0"
+                },
+                {
+                    "test_id": "test_4001kws9q4zgeqet27jjzj63tkak"
+                },
+                {
+                    "test_id": "test_8401kws9q57efxpv8q22ggad7h9y"
+                },
+                {
+                    "test_id": "test_0101kws9q5eqehtb2eb88xpnw6xw"
+                },
+                {
+                    "test_id": "test_9401kws9q5ppfh7t3z18vzqhjdmg"
+                },
+                {
+                    "test_id": "test_3401kws9q5yxffh97k3a47gnw05b"
+                },
+                {
+                    "test_id": "test_4701kws9q65qfjsbfq3y6rs43trw"
+                },
+                {
+                    "test_id": "test_9101kws9q6d0frwv8c4sk4xh6bpb"
+                },
+                {
+                    "test_id": "test_3801kws9q6nmej4r974ptw6kzfsq"
+                },
+                {
+                    "test_id": "test_6401kws9q6x4exm9ftcz0f5ckrk6"
+                },
+                {
+                    "test_id": "test_7301kws9q75pee2arq5hj9edfvza"
+                },
+                {
+                    "test_id": "test_4201kx3aqxnkea69nvhcmzhv72jd"
+                },
+                {
+                    "test_id": "test_7701kx3aqxnzf32r49dkqy5a9678"
+                },
+                {
+                    "test_id": "test_3401kx3aqfc3ekavz2tgs0z9fd3s"
+                }
+            ],
+            "referenced_tests_ids": [
+                "test_1101kws9q4g9e1q87vbvmgxxh87m",
+                "test_2001kws9q4r4f25tk7kpnbv5e0v0",
+                "test_4001kws9q4zgeqet27jjzj63tkak",
+                "test_8401kws9q57efxpv8q22ggad7h9y",
+                "test_0101kws9q5eqehtb2eb88xpnw6xw",
+                "test_9401kws9q5ppfh7t3z18vzqhjdmg",
+                "test_3401kws9q5yxffh97k3a47gnw05b",
+                "test_4701kws9q65qfjsbfq3y6rs43trw",
+                "test_9101kws9q6d0frwv8c4sk4xh6bpb",
+                "test_3801kws9q6nmej4r974ptw6kzfsq",
+                "test_6401kws9q6x4exm9ftcz0f5ckrk6",
+                "test_7301kws9q75pee2arq5hj9edfvza",
+                "test_4201kx3aqxnkea69nvhcmzhv72jd",
+                "test_7701kx3aqxnzf32r49dkqy5a9678",
+                "test_3401kx3aqfc3ekavz2tgs0z9fd3s"
+            ]
         },
-        {
-          "test_id": "test_3401kws9q5yxffh97k3a47gnw05b"
+        "archived": false,
+        "guardrails": {
+            "version": "1",
+            "focus": {
+                "is_enabled": true
+            },
+            "prompt_injection": {
+                "is_enabled": true
+            },
+            "content": {
+                "execution_mode": "streaming",
+                "config": {
+                    "sexual": {
+                        "is_enabled": false,
+                        "threshold": "medium"
+                    },
+                    "violence": {
+                        "is_enabled": false,
+                        "threshold": "medium"
+                    },
+                    "harassment": {
+                        "is_enabled": true,
+                        "threshold": 0.5
+                    },
+                    "self_harm": {
+                        "is_enabled": false,
+                        "threshold": "medium"
+                    },
+                    "profanity": {
+                        "is_enabled": true,
+                        "threshold": 0.5
+                    },
+                    "religion_or_politics": {
+                        "is_enabled": false,
+                        "threshold": "medium"
+                    },
+                    "medical_and_legal_information": {
+                        "is_enabled": false,
+                        "threshold": "medium"
+                    }
+                },
+                "trigger_action": {
+                    "type": "end_call"
+                }
+            },
+            "moderation": null,
+            "custom": {
+                "config": {
+                    "configs": [
+                        {
+                            "is_enabled": true,
+                            "name": "Claim completeness before closing",
+                            "prompt": "Block only when the agent's response ends the call, confirms the claim has been lodged, or calls end_call, WITHOUT the conversation having actually established all required claim fields. Required fields: claim type (vehicle or property), what happened, date and time of incident, vehicle registration number OR property address (matching the claim type), incident location (vehicle claims only), a contact method (email or phone), and both first and last name with spelling explicitly confirmed by the claimant. Policy number is best-effort and must NOT block closing if missing. Do not block responses that are still asking questions, still mid-flow (guided or express), or that are asking the claimant for missing fields — only block a response that treats the claim as complete and lodged while a required field above is actually absent from the transcript.",
+                            "execution_mode": "blocking",
+                            "model": "gemini-2.5-flash-lite",
+                            "history_message_count": 0,
+                            "history_include_tool_calls": false,
+                            "trigger_action": {
+                                "type": "retry",
+                                "feedback": "You attempted to close the call as complete, but the conversation transcript is missing: {{trigger_reason}}. Do not confirm the claim as lodged or call end_call. Ask the claimant for the specific missing field(s) first."
+                            }
+                        }
+                    ]
+                }
+            }
         },
-        {
-          "test_id": "test_4701kws9q65qfjsbfq3y6rs43trw"
+        "auto_translate_transcript_to_app_language": null,
+        "auth": {
+            "enable_auth": false,
+            "allowlist": [],
+            "require_origin_header": false
         },
-        {
-          "test_id": "test_9101kws9q6d0frwv8c4sk4xh6bpb"
+        "call_limits": {
+            "agent_concurrency_limit": -1,
+            "daily_limit": 100000,
+            "bursting_enabled": true
         },
-        {
-          "test_id": "test_3801kws9q6nmej4r974ptw6kzfsq"
+        "ban": null,
+        "smb_metadata": null,
+        "privacy": {
+            "record_voice": true,
+            "retention_days": -1,
+            "delete_transcript_and_pii": false,
+            "delete_audio": false,
+            "apply_to_existing_conversations": false,
+            "zero_retention_mode": false,
+            "conversation_history_redaction": {
+                "enabled": false,
+                "entities": []
+            }
         },
-        {
-          "test_id": "test_6401kws9q6x4exm9ftcz0f5ckrk6"
+        "trust_context": "unknown",
+        "analysis_llm": "gemini-2.5-flash",
+        "topic_discovery": {
+            "enabled": true
         },
-        {
-          "test_id": "test_7301kws9q75pee2arq5hj9edfvza"
+        "sentiment_analysis": {
+            "enabled": false
         },
-        {
-          "test_id": "test_4201kx3aqxnkea69nvhcmzhv72jd"
-        },
-        {
-          "test_id": "test_7701kx3aqxnzf32r49dkqy5a9678"
-        },
-        {
-          "test_id": "test_3401kx3aqfc3ekavz2tgs0z9fd3s"
+        "alerting": null,
+        "overview_dashboard_template_id": null,
+        "safety": {
+            "is_blocked_ivc": false,
+            "is_blocked_non_ivc": false,
+            "ignore_safety_evaluation": false
         }
-      ]
     },
-    "ban": null
-  },
-  "tags": []
+    "tags": [],
+    "workflow": {
+        "edges": {
+            "start_to_officer": {
+                "source": "start_node",
+                "target": "officer_node",
+                "forward_condition": {
+                    "type": "unconditional"
+                }
+            },
+            "officer_to_supervisor": {
+                "source": "officer_node",
+                "target": "supervisor_node",
+                "forward_condition": {
+                    "type": "llm",
+                    "condition": "Verify directly against the transcript — not against the officer's own belief or its submit_for_review tool call alone — that ALL of the following have actually been stated by the claimant for the current claim: claim type (vehicle or property); what happened; date and time of incident; vehicle registration number OR property address matching the claim type; incident location (vehicle claims only); a contact method (email or phone); and both first and last name with spelling explicitly confirmed by the claimant. Only transition when every one of these is genuinely present in the conversation."
+                }
+            }
+        },
+        "nodes": {
+            "start_node": {
+                "type": "start",
+                "position": {
+                    "x": 0,
+                    "y": 0
+                },
+                "edge_order": [
+                    "start_to_officer"
+                ]
+            },
+            "officer_node": {
+                "type": "override_agent",
+                "position": {
+                    "x": 0,
+                    "y": 0
+                },
+                "edge_order": [
+                    "officer_to_supervisor"
+                ],
+                "conversation_config": {},
+                "additional_prompt": "You must not call end_call yourself. When you believe all required fields are collected, keep the conversation going normally — do not attempt to end it. A supervisor step reviews completeness independently before the call ends.",
+                "additional_knowledge_base": [],
+                "additional_tool_ids": [],
+                "label": "Claims Officer",
+                "entry_behavior": "auto"
+            },
+            "supervisor_node": {
+                "type": "override_agent",
+                "position": {
+                    "x": 0,
+                    "y": 0
+                },
+                "edge_order": [],
+                "conversation_config": {},
+                "additional_prompt": "You are now acting as a Claims Supervisor at CGU, not as the intake officer. Ignore the officer persona's own instructions to ask upfront whether the claim is vehicle or property, or to collect fields turn by turn — that phase is over. Your only job now is to validate that all required claim information has already been collected before the claim is lodged.\n\n# Tone\n- Professional and efficient\n- Confirmatory — repeat back key details to the claimant\n- Brief — do not repeat questions already answered\n\n# Validation Process\nThis step is important. Review the conversation history and check each required field:\n\n## Vehicle Claim Required Fields:\n1. Policy number\n2. What happened\n3. Date and time of incident\n4. Vehicle registration number\n5. Incident location\n6. Contact method (email OR phone)\n7. First name (with spelling confirmed)\n8. Last name (with spelling confirmed)\n\n## Property Claim Required Fields:\n1. Policy number\n2. What happened\n3. Date and time of incident\n4. Property address\n5. Contact method (email OR phone)\n6. First name (with spelling confirmed)\n7. Last name (with spelling confirmed)\n\n# What to Do\n1. Read through the entire conversation history\n2. Check off each required field\n3. If ALL fields are present: say \"I've reviewed all your details and everything looks good. Your claim has been lodged. Expect an email within 1 business day with your claim number.\" Then call end_call.\n4. If ANY fields are missing: ask the claimant for ONLY the missing fields. Do not re-ask for fields already provided.\n5. Maximum 2 attempts per missing field. If still not obtainable after 2 attempts, proceed to lodge with whatever information is available — do not loop indefinitely.\n6. After collecting missing fields (or exhausting attempts), confirm all details and call end_call.\n\n# Name Verification\nIf the claimant's first and last name were provided but spelling was NOT explicitly confirmed, ask them to spell it out before confirming.\n\n# Guardrails\n- Do NOT collect information already provided in the conversation\n- Do NOT make small talk — you are a validation step only\n- Do NOT redirect to other services",
+                "additional_knowledge_base": [],
+                "additional_tool_ids": [],
+                "label": "Claims Supervisor",
+                "entry_behavior": "generate_immediately"
+            },
+            "end_node": {
+                "type": "end",
+                "position": {
+                    "x": 0,
+                    "y": 0
+                },
+                "edge_order": [],
+                "return_when_nested": true
+            }
+        },
+        "prevent_subagent_loops": false
+    }
 }

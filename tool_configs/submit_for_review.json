@@ -1,0 +1,37 @@
+{
+    "name": "submit_for_review",
+    "description": "Call this when you have collected all required claim fields and are ready for the supervisor to validate. Do NOT call this until you have: claim type, policy number, what happened, date/time, registration or property address, incident location, contact method, first name, and last name.",
+    "type": "webhook",
+    "api_schema": {
+        "url": "https://httpbin.org/post",
+        "method": "POST",
+        "request_body_schema": {
+            "type": "object",
+            "description": "Request body for the webhook",
+            "properties": {
+                "claim_type": {
+                    "type": "string",
+                    "description": "vehicle or property"
+                },
+                "status": {
+                    "type": "string",
+                    "description": "ready_for_review"
+                }
+            },
+            "required": [
+                "claim_type",
+                "status"
+            ]
+        },
+        "request_headers": {
+            "Content-Type": "application/json"
+        }
+    },
+    "response_timeout_secs": 30,
+    "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+    },
+    "assignments": [],
+    "disable_interruptions": false,
+    "force_pre_tool_speech": false
+}
