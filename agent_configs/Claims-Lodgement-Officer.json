@@ -85,7 +85,32 @@
             "shareable_token": null
         },
         "evaluation": {
-            "criteria": []
+            "criteria": [
+                {
+                    "id": "asks-vehicle-or-property-upfront",
+                    "name": "Asks vehicle or property upfront",
+                    "type": "prompt",
+                    "conversation_goal_prompt": "The agent asks the claimant whether their claim is about a vehicle or a property before collecting claim details. The agent does not proceed to gather specific fields until the claim type is determined."
+                },
+                {
+                    "id": "collects-all-required-fields",
+                    "name": "Collects all required fields",
+                    "type": "prompt",
+                    "conversation_goal_prompt": "The agent collects all required claim fields: policy number (best-effort), what happened, date/time of incident, risk asset (vehicle registration or property address), incident location (vehicle claims), contact method (email or phone), first name, and last name. The agent does not skip required fields without attempting to collect them."
+                },
+                {
+                    "id": "verifies-name-spelling",
+                    "name": "Verifies name spelling",
+                    "type": "prompt",
+                    "conversation_goal_prompt": "The agent explicitly confirms the spelling of the claimant's first name and last name. This occurs regardless of whether the interaction is guided flow or express lodgement."
+                },
+                {
+                    "id": "gives-correct-closing-message",
+                    "name": "Gives correct closing message",
+                    "type": "prompt",
+                    "conversation_goal_prompt": "After lodging the claim, the agent tells the claimant to expect an email within 1 business day with their claim number. The agent uses language consistent with 'I've lodged your claim. Expect an email within 1 business day with your claim number.'"
+                }
+            ]
         },
         "guardrails": {
             "version": "1",
@@ -263,6 +288,15 @@
                 },
                 {
                     "test_id": "test_7301kws9q75pee2arq5hj9edfvza"
+                },
+                {
+                    "test_id": "test_a101kws9r1unresponsive0001"
+                },
+                {
+                    "test_id": "test_a201kws9r2whatsapp_timeout"
+                },
+                {
+                    "test_id": "test_a301kws9r3express_property"
                 }
             ]
         },
