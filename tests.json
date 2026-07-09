@@ -17,7 +17,7 @@
         },
         {
             "config": "test_configs/Claims-Lodgement-Officer-handles-express-property-claim.json",
-            "id": "test_a301kws9r3express_property",
+            "id": "test_3401kx3aqfc3ekavz2tgs0z9fd3s",
             "type": "llm"
         },
         {
@@ -42,12 +42,12 @@
         },
         {
             "config": "test_configs/Claims-Lodgement-Officer-handles-unresponsive-caller.json",
-            "id": "test_a101kws9r1unresponsive0001",
+            "id": "test_4201kx3aqxnkea69nvhcmzhv72jd",
             "type": "llm"
         },
         {
             "config": "test_configs/Claims-Lodgement-Officer-handles-whatsapp-session-timeout.json",
-            "id": "test_a201kws9r2whatsapp_timeout",
+            "id": "test_7701kx3aqxnzf32r49dkqy5a9678",
             "type": "llm"
         },
         {
