@@ -19,14 +19,7 @@ dry-run: ## Preview what would change on push
 	elevenlabs agents push --dry-run
 
 test: ## Run all agent tests
-	@failed=0; for agent_id in $$(jq -r '.agents[].id' agents.json); do \
-		echo "Testing $$agent_id..."; \
-		if ! elevenlabs agents test $$agent_id --no-ui; then \
-			echo "FAIL: $$agent_id"; \
-			failed=1; \
-		fi; \
-	done; \
-	if [ "$$failed" -eq 1 ]; then exit 1; fi
+	bash scripts/run-tests.sh
 
 list: ## List agents and status
 	elevenlabs agents list

@@ -11,21 +11,14 @@ env:
 
 jobs:
   validate:
-    name: Validate agent configs
+    name: Validate configs
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
-        with:
-          node-version: '22'
-
-      - name: Install ElevenLabs CLI
-        run: npm install -g @elevenlabs/cli
-
       - name: Validate JSON configs
         run: |
-          for f in agent_configs/*.json; do
+          for f in agent_configs/*.json test_configs/*.json; do
             echo "Validating $f..."
             python3 -c "import json; json.load(open('$f'))" || exit 1
           done
@@ -71,19 +64,7 @@ jobs:
         run: echo "$ELEVENLABS_API_KEY" | elevenlabs auth login
 
       - name: Run tests
-        run: |
-          failed=0
-          for agent_id in $(jq -r '.agents[].id' agents.json); do
-            echo "Testing $agent_id..."
-            if ! elevenlabs agents test "$agent_id" --no-ui; then
-              echo "::error::Tests failed for $agent_id"
-              failed=1
-            fi
-          done
-          if [ "$failed" -eq 1 ]; then
-            echo "::error::One or more agents had test failures"
-            exit 1
-          fi
+        run: bash scripts/run-tests.sh
 
   test-pr:
     name: Run agent tests (PR)
@@ -92,26 +73,19 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
+
       - uses: actions/setup-node@v4
         with:
           node-version: '22'
+
       - name: Install ElevenLabs CLI
         run: npm install -g @elevenlabs/cli
+
       - name: Authenticate
         run: echo "$ELEVENLABS_API_KEY" | elevenlabs auth login
+
       - name: Dry-run push
         run: elevenlabs agents push --dry-run
+
       - name: Run tests
-        run: |
-          failed=0
-          for agent_id in $(jq -r '.agents[].id' agents.json); do
-            echo "Testing $agent_id..."
-            if ! elevenlabs agents test "$agent_id" --no-ui; then
-              echo "::error::Tests failed for $agent_id"
-              failed=1
-            fi
-          done
-          if [ "$failed" -eq 1 ]; then
-            echo "::error::One or more agents had test failures"
-            exit 1
-          fi
+        run: bash scripts/run-tests.sh
