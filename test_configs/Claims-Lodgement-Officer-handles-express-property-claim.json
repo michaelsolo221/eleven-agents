@@ -1,0 +1,32 @@
+{
+    "name": "Claims Lodgement Officer handles express property claim",
+    "type": "llm",
+    "chat_history": [
+        {
+            "role": "user",
+            "time_in_call_secs": 5,
+            "message": "Property claim. Policy POL-444555. Storm damage on the 22nd of June at around 6pm. Address is 15 Smith Street, Melbourne. Phone 0412 987 654. Name Rachel Kim."
+        }
+    ],
+    "success_condition": "The user has dumped all property claim info in one message (express lodgement). The agent should acknowledge the information provided and either ask for name spelling verification or confirm the claim is being lodged. The agent should NOT ask for information that was already provided. The property address serves as both the risk asset and incident location.",
+    "success_examples": [
+        {
+            "response": "Thank you, Rachel. Let me confirm the spelling — is that R-A-C-H-E-L, K-I-M? I've got all your details for the property at 15 Smith Street, Melbourne. I've lodged your claim. Expect an email within 1 business day.",
+            "type": "success"
+        },
+        {
+            "response": "Thanks Rachel. I have your policy, property address, incident details, and contact info. Let me just verify your name spelling — R-A-C-H-E-L, K-I-M?",
+            "type": "success"
+        }
+    ],
+    "failure_examples": [
+        {
+            "response": "Hi, my name is Amanda. You've reached CGU claims lodgement. Can I help you lodge a new claim?",
+            "type": "failure"
+        },
+        {
+            "response": "Can you tell me your property address?",
+            "type": "failure"
+        }
+    ]
+}
