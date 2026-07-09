@@ -19,10 +19,14 @@ dry-run: ## Preview what would change on push
 	elevenlabs agents push --dry-run
 
 test: ## Run all agent tests
-	@for agent in $$(elevenlabs agents list 2>/dev/null | grep -oE 'agent_[a-z0-9]+' || true); do \
-		echo "Testing $$agent..."; \
-		elevenlabs agents test $$agent --no-ui || true; \
-	done
+	@failed=0; for agent_id in $$(jq -r '.agents[].id' agents.json); do \
+		echo "Testing $$agent_id..."; \
+		if ! elevenlabs agents test $$agent_id --no-ui; then \
+			echo "FAIL: $$agent_id"; \
+			failed=1; \
+		fi; \
+	done; \
+	if [ "$$failed" -eq 1 ]; then exit 1; fi
 
 list: ## List agents and status
 	elevenlabs agents list
