@@ -1,0 +1,119 @@
+#!/usr/bin/env python3
+"""Local config validation for CI. Catches structural issues without deploying."""
+import json
+import sys
+from pathlib import Path
+
+ROOT = Path(__file__).resolve().parent.parent
+errors = []
+
+def fail(msg):
+    errors.append(msg)
+    print(f"  ✗ {msg}")
+
+def ok(msg):
+    print(f"  ✓ {msg}")
+
+# --- 1. Validate agents.json structure ---
+print("agents.json")
+try:
+    agents_data = json.loads((ROOT / "agents.json").read_text())
+    agent_list = agents_data.get("agents", [])
+    if not agent_list:
+        fail("agents.json: 'agents' array is empty")
+    for i, entry in enumerate(agent_list):
+        for field in ("config", "id", "version_id", "branch_id"):
+            if field not in entry:
+                fail(f"agents.json: agents[{i}] missing '{field}'")
+    ok(f"{len(agent_list)} agent(s) defined")
+except (json.JSONDecodeError, KeyError) as e:
+    fail(f"agents.json: {e}")
+
+# --- 2. Validate agent configs ---
+print("\nagent_configs/")
+agent_ids = set()
+for entry in agent_list:
+    config_path = ROOT / entry["config"]
+    agent_ids.add(entry["id"])
+    if not config_path.exists():
+        fail(f"{entry['config']}: file does not exist")
+        continue
+    try:
+        data = json.loads(config_path.read_text())
+    except json.JSONDecodeError as e:
+        fail(f"{entry['config']}: invalid JSON — {e}")
+        continue
+    # Required top-level fields
+    if "name" not in data:
+        fail(f"{entry['config']}: missing 'name'")
+    if "conversation_config" not in data:
+        fail(f"{entry['config']}: missing 'conversation_config'")
+    else:
+        cc = data["conversation_config"]
+        if "agent" not in cc:
+            fail(f"{entry['config']}: conversation_config missing 'agent'")
+        elif "prompt" not in cc["agent"]:
+            fail(f"{entry['config']}: conversation_config.agent missing 'prompt'")
+    ok(f"{entry['config']}")
+
+# --- 3. Validate tests.json ---
+print("\ntests.json")
+try:
+    tests_data = json.loads((ROOT / "tests.json").read_text())
+    test_list = tests_data.get("tests", [])
+    if not test_list:
+        fail("tests.json: 'tests' array is empty")
+    for i, entry in enumerate(test_list):
+        for field in ("config", "id", "type"):
+            if field not in entry:
+                fail(f"tests.json: tests[{i}] missing '{field}'")
+    ok(f"{len(test_list)} test(s) defined")
+except (json.JSONDecodeError, KeyError) as e:
+    fail(f"tests.json: {e}")
+
+# --- 4. Validate test configs ---
+print("\ntest_configs/")
+test_configs_dir = ROOT / "test_configs"
+for entry in test_list:
+    config_path = ROOT / entry["config"]
+    if not config_path.exists():
+        fail(f"{entry['config']}: file does not exist")
+        continue
+    try:
+        data = json.loads(config_path.read_text())
+    except json.JSONDecodeError as e:
+        fail(f"{entry['config']}: invalid JSON — {e}")
+        continue
+    # Required fields
+    for field in ("name", "type", "chat_history", "success_condition"):
+        if field not in data:
+            fail(f"{entry['config']}: missing '{field}'")
+    # chat_history must be non-empty array
+    history = data.get("chat_history", [])
+    if not isinstance(history, list) or len(history) == 0:
+        fail(f"{entry['config']}: 'chat_history' must be a non-empty array")
+    ok(f"{entry['config']}")
+
+# --- 5. Check for orphaned files ---
+print("\nOrphan check")
+config_files = {e["config"] for e in agent_list}
+test_files = {e["config"] for e in test_list}
+for p in sorted((ROOT / "agent_configs").glob("*.json")):
+    rel = f"agent_configs/{p.name}"
+    if rel not in config_files:
+        fail(f"{rel}: exists on disk but not in agents.json")
+for p in sorted(test_configs_dir.glob("*.json")):
+    rel = f"test_configs/{p.name}"
+    if rel not in test_files:
+        fail(f"{rel}: exists on disk but not in tests.json")
+ok("no orphaned config files")
+
+# --- Summary ---
+print(f"\n{'='*40}")
+if errors:
+    print(f"FAILED — {len(errors)} error(s):")
+    for e in errors:
+        print(f"  • {e}")
+    sys.exit(1)
+else:
+    print("All validations passed")

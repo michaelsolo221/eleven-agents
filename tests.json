@@ -16,6 +16,11 @@
             "type": "llm"
         },
         {
+            "config": "test_configs/Claims-Lodgement-Officer-handles-express-property-claim.json",
+            "id": "test_a301kws9r3express_property",
+            "type": "llm"
+        },
+        {
             "config": "test_configs/Claims-Lodgement-Officer-handles-express-vehicle-claim.json",
             "id": "test_8401kws9q57efxpv8q22ggad7h9y",
             "type": "llm"
@@ -33,6 +38,16 @@
         {
             "config": "test_configs/Claims-Lodgement-Officer-handles-nominated-representative.json",
             "id": "test_3401kws9q5yxffh97k3a47gnw05b",
+            "type": "llm"
+        },
+        {
+            "config": "test_configs/Claims-Lodgement-Officer-handles-unresponsive-caller.json",
+            "id": "test_a101kws9r1unresponsive0001",
+            "type": "llm"
+        },
+        {
+            "config": "test_configs/Claims-Lodgement-Officer-handles-whatsapp-session-timeout.json",
+            "id": "test_a201kws9r2whatsapp_timeout",
             "type": "llm"
         },
         {
