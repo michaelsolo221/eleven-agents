@@ -1,0 +1,52 @@
+{
+    "name": "Claims Lodgement Officer transfers to supervisor when complete",
+    "type": "llm",
+    "chat_history": [
+        {
+            "role": "user",
+            "time_in_call_secs": 5,
+            "message": "I'd like to lodge a vehicle claim please."
+        },
+        {
+            "role": "user",
+            "time_in_call_secs": 15,
+            "message": "It's registration ABC-123, policy number POL-123456."
+        },
+        {
+            "role": "user",
+            "time_in_call_secs": 25,
+            "message": "I was rear-ended at a red light on the 3rd of March at 2pm, at the corner of Smith and King Street."
+        },
+        {
+            "role": "user",
+            "time_in_call_secs": 35,
+            "message": "You can reach me by email at john.smith@example.com. My name is John Smith."
+        },
+        {
+            "role": "user",
+            "time_in_call_secs": 45,
+            "message": "Yes that's right, J-O-H-N S-M-I-T-H."
+        }
+    ],
+    "success_condition": "All required vehicle claim fields have now been provided and the claimant has just confirmed the spelling of their name — nothing is missing. The agent should transfer the conversation to the Claims Supervisor (via the transfer_to_agent tool) rather than continuing to ask questions, declaring the claim lodged itself, or ending the call itself. The agent must not say anything implying the claim has already been lodged, and must not mention a claim number or an email confirmation — that is the supervisor's job, not the officer's.",
+    "success_examples": [
+        {
+            "response": "Great, I have everything I need. Let me just get that confirmed for you.",
+            "type": "success"
+        },
+        {
+            "response": "Perfect, thank you John. One moment please.",
+            "type": "success"
+        }
+    ],
+    "failure_examples": [
+        {
+            "response": "I've lodged your claim. Expect an email within 1 business day with your claim number.",
+            "type": "failure"
+        },
+        {
+            "response": "Could you please provide your policy number?",
+            "type": "failure"
+        }
+    ]
+}

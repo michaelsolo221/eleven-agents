@@ -40,6 +40,9 @@ jobs:
       - name: Push agents
         run: elevenlabs agents push
 
+      - name: Verify live tools match config
+        run: python3 scripts/verify-live-tools.py
+
   test:
     name: Run agent tests
     needs: push

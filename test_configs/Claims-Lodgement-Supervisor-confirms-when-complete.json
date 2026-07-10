@@ -1,0 +1,68 @@
+{
+    "name": "Claims Lodgement Supervisor confirms when complete",
+    "type": "llm",
+    "chat_history": [
+        {
+            "role": "user",
+            "time_in_call_secs": 5,
+            "message": "I'd like to lodge a vehicle claim please."
+        },
+        {
+            "role": "agent",
+            "time_in_call_secs": 8,
+            "message": "Are you lodging a claim about a vehicle or a property?"
+        },
+        {
+            "role": "user",
+            "time_in_call_secs": 15,
+            "message": "Vehicle. My policy number is POL-123456, registration ABC-123."
+        },
+        {
+            "role": "agent",
+            "time_in_call_secs": 20,
+            "message": "Thank you. Could you tell me what happened?"
+        },
+        {
+            "role": "user",
+            "time_in_call_secs": 25,
+            "message": "I was rear-ended at a red light on the 3rd of March at 2pm, at the corner of Smith and King Street."
+        },
+        {
+            "role": "agent",
+            "time_in_call_secs": 32,
+            "message": "Thank you. How would you like to be contacted?"
+        },
+        {
+            "role": "user",
+            "time_in_call_secs": 35,
+            "message": "Email is john.smith@example.com. My name is John Smith."
+        },
+        {
+            "role": "agent",
+            "time_in_call_secs": 42,
+            "message": "Could you confirm the spelling of your name?"
+        },
+        {
+            "role": "user",
+            "time_in_call_secs": 45,
+            "message": "Yes, J-O-H-N S-M-I-T-H."
+        }
+    ],
+    "success_condition": "All required vehicle claim fields (policy number, what happened, date/time, registration, incident location, contact method, and first/last name with spelling confirmed) are genuinely present in the conversation history above. The agent (Claims Supervisor) should confirm the claim is complete, tell the claimant their claim has been lodged, and mention they will receive an email within 1 business day with their claim number. The agent must not ask for any further information since everything required has already been provided.",
+    "success_examples": [
+        {
+            "response": "I've reviewed all your details and everything looks good. Your claim has been lodged. Expect an email within 1 business day with your claim number.",
+            "type": "success"
+        }
+    ],
+    "failure_examples": [
+        {
+            "response": "Could you please provide your last name?",
+            "type": "failure"
+        },
+        {
+            "response": "Could you confirm your policy number again?",
+            "type": "failure"
+        }
+    ]
+}

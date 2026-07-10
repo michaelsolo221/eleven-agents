@@ -8,14 +8,14 @@
             "message": "Vehicle claim. Policy POL-999888. Car crash last Tuesday the 25th of June around 2pm. Registration XYZ-789. Happened on the Pacific Highway near the Gold Coast. Email james.murphy@email.com. Name James Murphy."
         }
     ],
-    "success_condition": "The user has dumped all vehicle claim info in one message (express lodgement). The agent should acknowledge the information provided and either ask for name spelling verification or confirm the claim is being lodged. The agent should NOT ask for information that was already provided.",
+    "success_condition": "The user has dumped all vehicle claim info in one message (express lodgement). The agent should acknowledge the information provided, ask for name spelling verification, confirm the claim is being lodged, or transfer to the Claims Supervisor via transfer_to_agent if genuinely complete including confirmed name spelling. The agent should NOT ask for information that was already provided, and should NOT restart with the greeting.",
     "success_examples": [
         {
-            "response": "Thank you, James. Let me confirm the spelling \u2014 is that J-A-M-E-S, M-U-R-P-H-Y? I've got all your details. I've lodged your claim. Expect an email within 1 business day.",
+            "response": "Thank you, James. Let me confirm the spelling — is that J-A-M-E-S, M-U-R-P-H-Y? I've got all your details. I've lodged your claim. Expect an email within 1 business day.",
             "type": "success"
         },
         {
-            "response": "Thanks James. I have your policy, registration, incident details, and contact info. Let me just verify your name spelling \u2014 J-A-M-E-S, M-U-R-P-H-Y?",
+            "response": "Thanks James. I have your policy, registration, incident details, and contact info. Let me just verify your name spelling — J-A-M-E-S, M-U-R-P-H-Y?",
             "type": "success"
         }
     ],

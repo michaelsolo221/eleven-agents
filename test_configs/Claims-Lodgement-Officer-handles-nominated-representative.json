@@ -18,10 +18,10 @@
             "message": "Her address is 15 Smith Street, Melbourne. My name is Emily Park. My phone is 0400 111 222."
         }
     ],
-    "success_condition": "The caller is a nominated representative calling on behalf of the policyholder (their mum). The agent must NOT refuse to proceed or demand to speak to the policyholder directly. The agent must accept the caller as the point of contact and continue with the claim lodgement process.",
+    "success_condition": "The caller is a nominated representative calling on behalf of the policyholder (their mum). The agent must NOT refuse to proceed or demand to speak to the policyholder directly. The agent must accept the caller as the point of contact and continue with the claim lodgement process. Continuing the claim lodgement process includes transferring to the Claims Supervisor via transfer_to_agent if the claim is genuinely complete at this point.",
     "success_examples": [
         {
-            "response": "Thank you, Emily. Let me confirm the spelling \u2014 E-M-I-L-Y, P-A-R-K?",
+            "response": "Thank you, Emily. Let me confirm the spelling — E-M-I-L-Y, P-A-R-K?",
             "type": "success"
         },
         {

@@ -74,6 +74,21 @@
             "config": "test_configs/Claims-Lodgement-Officer-treats-past-events-as-valid-claims.json",
             "id": "test_7301kws9q75pee2arq5hj9edfvza",
             "type": "llm"
+        },
+        {
+            "config": "test_configs/Claims-Lodgement-Officer-transfers-to-supervisor-when-complete.json",
+            "id": "test_9501kx3eaqz6e9hr5xre4fb3mc93",
+            "type": "llm"
+        },
+        {
+            "config": "test_configs/Claims-Lodgement-Supervisor-catches-missing-field.json",
+            "id": "test_6801kx3ear77fw7a5xvh9vqs9ryv",
+            "type": "llm"
+        },
+        {
+            "config": "test_configs/Claims-Lodgement-Supervisor-confirms-when-complete.json",
+            "id": "test_1201kx3earfafg9tebhxzv3e9bwe",
+            "type": "llm"
         }
     ]
 }
