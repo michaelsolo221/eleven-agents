@@ -66,6 +66,11 @@
             "type": "llm"
         },
         {
+            "config": "test_configs/Claims-Lodgement-Officer-redirects-caller-who-declines-greeting.json",
+            "id": "test_5501kx3eqc3efq3k2g4nhm1spq55",
+            "type": "llm"
+        },
+        {
             "config": "test_configs/Claims-Lodgement-Officer-steers-small-talk.json",
             "id": "test_6401kws9q6x4exm9ftcz0f5ckrk6",
             "type": "llm"
@@ -88,6 +93,11 @@
         {
             "config": "test_configs/Claims-Lodgement-Supervisor-confirms-when-complete.json",
             "id": "test_1201kx3earfafg9tebhxzv3e9bwe",
+            "type": "llm"
+        },
+        {
+            "config": "test_configs/Claims-Lodgement-Supervisor-ends-call-after-lodgement.json",
+            "id": "test_8801kx3eqd7yfn6n3v5pbz8tzq66",
             "type": "llm"
         }
     ]

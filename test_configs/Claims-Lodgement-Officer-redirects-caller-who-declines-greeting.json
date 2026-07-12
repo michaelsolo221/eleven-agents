@@ -1,0 +1,36 @@
+{
+    "name": "Claims Lodgement Officer redirects caller who declines greeting",
+    "type": "llm",
+    "chat_history": [
+        {
+            "role": "user",
+            "time_in_call_secs": 5,
+            "message": "No, I don't have a claim."
+        }
+    ],
+    "success_condition": "The agent's first message is 'Hi, my name is Amanda. You've reached CGU claims lodgement. Can I help you lodge a new claim?' which the LLM evaluator is expected to know because the agent is the Claims Lodgement Officer. The caller has responded 'no' to this greeting. The agent must redirect them to 1300 943 690 for standard telephone support, and should ask whether there is anything else about lodging a new claim they can help with. The agent must NOT try to collect claim details or restart the greeting.",
+    "success_examples": [
+        {
+            "response": "No worries. For anything else, you can reach our standard support line on 1300 943 690. Is there anything about lodging a new claim I can help with?",
+            "type": "success"
+        },
+        {
+            "response": "That's fine. If you need assistance with anything other than a new claim, please call 1300 943 690. Can I help with a new claim at all?",
+            "type": "success"
+        }
+    ],
+    "failure_examples": [
+        {
+            "response": "Hi, my name is Amanda. You've reached CGU claims lodgement. Can I help you lodge a new claim?",
+            "type": "failure"
+        },
+        {
+            "response": "Are you lodging a claim about a vehicle or a property?",
+            "type": "failure"
+        },
+        {
+            "response": "Could you tell me your policy number?",
+            "type": "failure"
+        }
+    ]
+}
