@@ -48,16 +48,36 @@
             "message": "Yes, J-O-H-N S-M-I-T-H."
         }
     ],
-    "success_condition": "The claimant has provided policy number, what happened, date/time, vehicle registration, contact method, and confirmed name spelling — but the incident location (where the crash happened) was never mentioned anywhere in the conversation history above. The agent (Claims Supervisor) must notice this specific gap by checking the transcript, not assume it was collected, and ask the claimant for the incident location. The agent must NOT declare the claim lodged, must NOT say the claim is complete, and must NOT call end_call.",
+    "success_condition": "The following required fields ARE present in the conversation: claim type (vehicle), what happened (rear-ended at a red light), date/time of incident (3rd March, 2pm), vehicle registration (ABC-123), contact method (email: john.smith@example.com), and both first and last name (John Smith) with spelling confirmed by the claimant. However, the INCIDENT LOCATION is missing — the claimant mentioned being 'at a red light' but never specified the street name, intersection, or address where the crash occurred. The agent must identify this specific gap and explicitly ask the claimant for the incident location before any attempt to close the call or lodge the claim. An acceptable response asks 'where did this happen?' or 'what was the location of the accident?' rather than declaring the claim lodged or completing the call.",
     "success_examples": [
         {
             "response": "Thanks John, I just need one more detail — could you tell me where the incident happened?",
+            "type": "success"
+        },
+        {
+            "response": "I have all the details except one — what was the location of the accident? Which street or intersection?",
+            "type": "success"
+        },
+        {
+            "response": "Before I can lodge this, I need to know where the incident took place. Can you give me the street name or cross street?",
+            "type": "success"
+        },
+        {
+            "response": "Almost done — one last question. Where exactly did the crash happen?",
             "type": "success"
         }
     ],
     "failure_examples": [
         {
             "response": "I've reviewed all your details and everything looks good. Your claim has been lodged. Expect an email within 1 business day with your claim number.",
+            "type": "failure"
+        },
+        {
+            "response": "That covers everything I need. Your claim is now lodged. You'll get a confirmation email shortly.",
+            "type": "failure"
+        },
+        {
+            "response": "All the required information is in order. I'm lodging your claim now and you'll hear back within 1 business day.",
             "type": "failure"
         }
     ]
