@@ -50,9 +50,10 @@ def find_branch_id(agent_id, branch_name):
         body = e.read().decode(errors="replace")
         warn(f"HTTP {e.code} listing branches: {body[:200]}")
         return None
-    for branch in data.get("items", []):
-        if branch.get("name") == branch_name:
-            return branch["id"]
+    for branch_list in (data.get("branches", []), data.get("items", []), data.get("results", [])):
+        for branch in branch_list:
+            if branch.get("name") == branch_name:
+                return branch["id"]
     return None
 
 

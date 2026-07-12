@@ -46,9 +46,11 @@ def find_branch_id(agent_id, branch_name):
     req = urllib.request.Request(url, headers={"xi-api-key": API_KEY})
     with urllib.request.urlopen(req) as resp:
         data = json.loads(resp.read())
-    for branch in data.get("items", []):
-        if branch.get("name") == branch_name:
-            return branch["id"]
+    for key in ("branches", "items", "results"):
+        for branch in data.get(key, []):
+            if branch.get("name") == branch_name:
+                return branch["id"]
+    print(f"  (debug) response keys: {sorted(data.keys())}, sample: {json.dumps(data)[:200]}")
     return None
 
 def local_tool_names(config):

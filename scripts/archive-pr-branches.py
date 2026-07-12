@@ -33,9 +33,10 @@ def find_branch_id(agent_id, branch_name):
     except urllib.error.HTTPError as e:
         fail(f"Failed to list branches for {agent_id}: HTTP {e.code}")
         return None
-    for branch in data.get("items", []):
-        if branch.get("name") == branch_name:
-            return branch["id"]
+    for branch_list in (data.get("branches", []), data.get("items", []), data.get("results", [])):
+        for branch in branch_list:
+            if branch.get("name") == branch_name:
+                return branch["id"]
     return None
 
 
