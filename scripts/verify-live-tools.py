@@ -50,6 +50,14 @@ def live_tool_names(agent):
     return {t["name"] for t in prompt.get("tools", []) if "name" in t}
 
 
+
+def local_webhook_id(config):
+    return config.get("platform_settings", {}).get("workspace_overrides", {}).get("webhooks", {}).get("post_call_webhook_id")
+
+
+def live_webhook_id(agent):
+    return agent.get("platform_settings", {}).get("workspace_overrides", {}).get("webhooks", {}).get("post_call_webhook_id")
+
 if not API_KEY:
     print("ELEVENLABS_API_KEY not set — skipping live verification")
     sys.exit(0)
@@ -58,26 +66,37 @@ agents_data = json.loads((ROOT / "agents.json").read_text())
 for entry in agents_data.get("agents", []):
     config_path = ROOT / entry["config"]
     local = json.loads(config_path.read_text())
-    expected = local_tool_names(local)
-    if not expected:
-        ok(f"{entry['config']}: no tools declared, nothing to verify")
+    expected_tools = local_tool_names(local)
+    expected_webhook = local_webhook_id(local)
+    if not expected_tools and not expected_webhook:
+        ok(f"{entry['config']}: no tools or webhook declared, nothing to verify")
         continue
     try:
         live = fetch_live_agent(entry["id"])
     except Exception as e:
         fail(f"{entry['config']}: could not fetch live agent {entry['id']} — {e}")
         continue
-    actual = live_tool_names(live)
-    missing = expected - actual
-    if missing:
-        fail(
-            f"{entry['config']}: tool(s) {sorted(missing)} declared locally but "
-            f"missing from the live agent {entry['id']} after push — the CLI "
-            f"likely dropped them silently during push. Patch the API directly "
-            f"to fix (see scripts/verify-live-tools.py docstring)."
-        )
-    else:
-        ok(f"{entry['config']}: all {len(expected)} declared tool(s) present live")
+    if expected_tools:
+        actual_tools = live_tool_names(live)
+        missing = expected_tools - actual_tools
+        if missing:
+            fail(
+                f"{entry['config']}: tool(s) {sorted(missing)} declared locally but "
+                f"missing from the live agent {entry['id']} after push — the CLI "
+                f"likely dropped them silently during push. Patch the API directly "
+                f"to fix (see scripts/verify-live-tools.py docstring)."
+            )
+        else:
+            ok(f"{entry['config']}: all {len(expected_tools)} declared tool(s) present live")
+    if expected_webhook:
+        live_wid = live_webhook_id(live)
+        if live_wid != expected_webhook:
+            fail(
+                f"{entry['config']}: post_call_webhook_id mismatch — "
+                f"local: {expected_webhook}, live: {live_wid}"
+            )
+        else:
+            ok(f"{entry['config']}: post_call_webhook_id matches live")
 
 print(f"\n{'='*40}")
 if errors:

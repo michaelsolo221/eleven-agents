@@ -418,7 +418,8 @@
                     "transcript"
                 ],
                 "transcript_format": "json",
-                "send_audio": false
+                "send_audio": false,
+                "post_call_webhook_id": "4dda02e3d69a49d5bf1b3cf25fc4759d"
             }
         },
         "testing": {
@@ -597,76 +598,5 @@
             "ignore_safety_evaluation": false
         }
     },
-    "tags": [],
-    "workflow": {
-        "edges": {
-            "start_to_officer": {
-                "source": "start_node",
-                "target": "officer_node",
-                "forward_condition": {
-                    "type": "unconditional"
-                }
-            },
-            "officer_to_supervisor": {
-                "source": "officer_node",
-                "target": "supervisor_node",
-                "forward_condition": {
-                    "type": "llm",
-                    "condition": "Verify directly against the transcript — not against the officer's own belief or its submit_for_review tool call alone — that ALL of the following have actually been stated by the claimant for the current claim: claim type (vehicle or property); what happened; date and time of incident; vehicle registration number OR property address matching the claim type; incident location (vehicle claims only); a contact method (email or phone); and both first and last name with spelling explicitly confirmed by the claimant. Only transition when every one of these is genuinely present in the conversation."
-                }
-            }
-        },
-        "nodes": {
-            "start_node": {
-                "type": "start",
-                "position": {
-                    "x": 0,
-                    "y": 0
-                },
-                "edge_order": [
-                    "start_to_officer"
-                ]
-            },
-            "officer_node": {
-                "type": "override_agent",
-                "position": {
-                    "x": 0,
-                    "y": 0
-                },
-                "edge_order": [
-                    "officer_to_supervisor"
-                ],
-                "conversation_config": {},
-                "additional_prompt": "You must not call end_call yourself. When you believe all required fields are collected, keep the conversation going normally — do not attempt to end it. A supervisor step reviews completeness independently before the call ends.",
-                "additional_knowledge_base": [],
-                "additional_tool_ids": [],
-                "label": "Claims Officer",
-                "entry_behavior": "auto"
-            },
-            "supervisor_node": {
-                "type": "override_agent",
-                "position": {
-                    "x": 0,
-                    "y": 0
-                },
-                "edge_order": [],
-                "conversation_config": {},
-                "additional_prompt": "You are now acting as a Claims Supervisor at CGU, not as the intake officer. Ignore the officer persona's own instructions to ask upfront whether the claim is vehicle or property, or to collect fields turn by turn — that phase is over. Your only job now is to validate that all required claim information has already been collected before the claim is lodged.\n\n# Tone\n- Professional and efficient\n- Confirmatory — repeat back key details to the claimant\n- Brief — do not repeat questions already answered\n\n# Validation Process\nThis step is important. Review the conversation history and check each required field:\n\n## Vehicle Claim Required Fields:\n1. Policy number\n2. What happened\n3. Date and time of incident\n4. Vehicle registration number\n5. Incident location\n6. Contact method (email OR phone)\n7. First name (with spelling confirmed)\n8. Last name (with spelling confirmed)\n\n## Property Claim Required Fields:\n1. Policy number\n2. What happened\n3. Date and time of incident\n4. Property address\n5. Contact method (email OR phone)\n6. First name (with spelling confirmed)\n7. Last name (with spelling confirmed)\n\n# What to Do\n1. Read through the entire conversation history\n2. Check off each required field\n3. If ALL fields are present: say \"I've reviewed all your details and everything looks good. Your claim has been lodged. Expect an email within 1 business day with your claim number.\" Then call end_call.\n4. If ANY fields are missing: ask the claimant for ONLY the missing fields. Do not re-ask for fields already provided.\n5. Maximum 2 attempts per missing field. If still not obtainable after 2 attempts, proceed to lodge with whatever information is available — do not loop indefinitely.\n6. After collecting missing fields (or exhausting attempts), confirm all details and call end_call.\n\n# Name Verification\nIf the claimant's first and last name were provided but spelling was NOT explicitly confirmed, ask them to spell it out before confirming.\n\n# Guardrails\n- Do NOT collect information already provided in the conversation\n- Do NOT make small talk — you are a validation step only\n- Do NOT redirect to other services",
-                "additional_knowledge_base": [],
-                "additional_tool_ids": [],
-                "label": "Claims Supervisor",
-                "entry_behavior": "generate_immediately"
-            },
-            "end_node": {
-                "type": "end",
-                "position": {
-                    "x": 0,
-                    "y": 0
-                },
-                "edge_order": [],
-                "return_when_nested": true
-            }
-        },
-        "prevent_subagent_loops": false
-    }
+    "tags": []
 }

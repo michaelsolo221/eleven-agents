@@ -385,13 +385,17 @@
                     "transcript"
                 ],
                 "transcript_format": "json",
-                "send_audio": false
+                "send_audio": false,
+                "post_call_webhook_id": "4dda02e3d69a49d5bf1b3cf25fc4759d"
             }
         },
         "testing": {
             "attached_tests": [
                 {
                     "test_id": "test_1201kx3earfafg9tebhxzv3e9bwe"
+                },
+                {
+                    "test_id": "test_6801kx3ear77fw7a5xvh9vqs9ryv"
                 }
             ],
             "referenced_tests_ids": []
@@ -504,18 +508,5 @@
         }
     },
     "tags": [],
-    "workflow": {
-        "edges": {},
-        "nodes": {
-            "start_node": {
-                "type": "start",
-                "position": {
-                    "x": 0,
-                    "y": 0
-                },
-                "edge_order": []
-            }
-        },
-        "prevent_subagent_loops": false
-    }
+    "workflow": null
 }

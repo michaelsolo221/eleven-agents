@@ -28,7 +28,8 @@ Common mistakes:
 - New agents: use `elevenlabs agents add "Name" --from-file config.json --no-ui` to create on ElevenLabs and get real ID. Don't put placeholder IDs in `agents.json`.
 - `platform_settings.testing.attached_tests` must reference test IDs from `tests.json`. Format: `[{"test_id": "test_xxx"}]`.
 - `conversation_config_overrides.text_only` in platform settings: set `false` for voice agents.
-- Warnings about non-persisted fields (custom_llm, shareable_token, widget colors, webhook IDs) are harmless. All agents get them.
+- Warnings about non-persisted fields (custom_llm, shareable_token, widget colors) are harmless. All agents get them.
+- `post_call_webhook_id` is NOT in that category — the CLI can silently drop it on push (ADR 0002). Always run `python3 scripts/verify-live-tools.py` after pushing an agent that sets one.
 
 ## CLI Commands
 
