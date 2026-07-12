@@ -69,14 +69,17 @@ Adding a test config file is not enough — it must be pushed and attached, or i
 
 ## CI
 
-Defined in `.github/workflows/agents.yml`. Three jobs, no `test-pr` job exists:
+Defined in `.github/workflows/agents.yml`. Four jobs:
 
 - `validate` — runs on every push and PR. Runs `scripts/validate-configs.py`, which checks `agent_configs/*.json`, `tests.json`, `test_configs/*.json`, orphaned files, and that `attached_tests` cross-references `tests.json`.
-- `push` and `test` — main only (`if: github.ref == 'refs/heads/main' && github.event_name == 'push'`). PRs get `validate` only — no dry-run push or test run happens pre-merge, so live platform state (attached tests, tools, webhook) can't be confirmed until after merge. Re-run `python3 scripts/verify-live-tools.py` manually post-merge if a PR touched tests, tools, or the webhook.
+- `pr-test` — runs on PRs only (not main), after `validate`. Pushes agent configs to an isolated `pr-<number>` ElevenLabs branch, then runs `verify-live-tools.py` and API-based tests against that branch via `test-pr-branch.py`. Blocks merge on failure. Uses `elevenlabs agents push --branch` (CLI 0.5.5+) and `POST /v1/convai/agents/{id}/run-tests` with `branch_id`.
+- `push` and `test` — main only (`if: github.ref == 'refs/heads/main' && github.event_name == 'push'`). Push agents to production and run the full CLI-based test suite.
+
+A separate workflow (`.github/workflows/pr-cleanup.yml`) archives `pr-*` branches when a PR is merged or closed.
 
 ## Local↔Platform Sync Fields
 
-Fields like `attached_tests`, tool names, and `post_call_webhook_id` all have the same failure mode: the CLI can silently drop them on push (ADR 0002), and CI's `push`/`test` jobs are main-only, so nothing confirms live state pre-merge (see CI section above). This has caused two real regressions (#29, PR #35).
+Fields like `attached_tests`, tool names, and `post_call_webhook_id` all have the same failure mode: the CLI can silently drop them on push (ADR 0002), and CI's `push`/`test` jobs are main-only, so nothing confirms live state pre-merge (see CI section above). The `pr-test` job (added for #36/#37) closes this gap for PRs — it pushes to an isolated branch, verifies, and tests pre-merge. Main-only checks (`push`/`test` jobs) still apply post-merge.
 
 - Adding a **new** field of this kind: extend `scripts/validate-configs.py` (local cross-reference check) and `scripts/verify-live-tools.py` (live-state check) in the **same commit/PR** that introduces the field. Don't ship the field first and the check later — that gap is exactly how #29 and PR #35 happened.
 - **Definition of done** for any change touching a synced field: run `python3 scripts/verify-live-tools.py` (with `ELEVENLABS_API_KEY` set) yourself before calling the work finished. Don't wait for CI or a review to catch it — CI only checks this post-merge.

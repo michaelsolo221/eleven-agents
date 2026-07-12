@@ -3,12 +3,17 @@
     "type": "llm",
     "chat_history": [
         {
+            "role": "agent",
+            "time_in_call_secs": 0,
+            "message": "Hi, my name is Amanda. You've reached CGU claims lodgement. Can I help you lodge a new claim?"
+        },
+        {
             "role": "user",
             "time_in_call_secs": 5,
             "message": "No, I don't have a claim."
         }
     ],
-    "success_condition": "The agent's first message is 'Hi, my name is Amanda. You've reached CGU claims lodgement. Can I help you lodge a new claim?' which the LLM evaluator is expected to know because the agent is the Claims Lodgement Officer. The caller has responded 'no' to this greeting. The agent must redirect them to 1300 943 690 for standard telephone support, and should ask whether there is anything else about lodging a new claim they can help with. The agent must NOT try to collect claim details or restart the greeting.",
+    "success_condition": "The caller has responded 'no' to the greeting offer to lodge a claim. The agent must redirect them to 1300 943 690 for standard telephone support, should ask whether they can help with lodging a new claim, and must NOT try to collect claim details or restart the greeting.",
     "success_examples": [
         {
             "response": "No worries. For anything else, you can reach our standard support line on 1300 943 690. Is there anything about lodging a new claim I can help with?",

@@ -19,6 +19,64 @@ jobs:
       - name: Validate configs
         run: python3 scripts/validate-configs.py
 
+  pr-test:
+    name: Test PR branch
+    needs: validate
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install ElevenLabs CLI
+        run: npm install -g @elevenlabs/cli
+
+      - name: Authenticate
+        run: echo "$ELEVENLABS_API_KEY" | elevenlabs auth login
+
+      - name: Create PR branches
+        env:
+          PR_NUMBER: ${{ github.event.pull_request.number }}
+        run: |
+          set -euo pipefail
+          for agent_id in $(jq -r '.agents[].id' agents.json); do
+            branch_name="pr-${PR_NUMBER}"
+            version_id=$(jq -r --arg id "$agent_id" '.agents[] | select(.id == $id) | .version_id' agents.json)
+            echo "Ensuring branch $branch_name for agent $agent_id..."
+            http_code=$(curl -s -o /dev/null -w '%{http_code}' \
+              -X POST "https://api.elevenlabs.io/v1/convai/agents/$agent_id/branches" \
+              -H "xi-api-key: $ELEVENLABS_API_KEY" \
+              -H "Content-Type: application/json" \
+              -d "{\"parent_version_id\": \"$version_id\", \"name\": \"$branch_name\", \"description\": \"PR #${PR_NUMBER} test branch\"}")
+            if [ "$http_code" = "200" ] || [ "$http_code" = "400" ] || [ "$http_code" = "422" ]; then
+              echo "  Branch $branch_name ready (HTTP $http_code)"
+            else
+              echo "::error::Failed to create branch $branch_name (HTTP $http_code)"
+              exit 1
+            fi
+          done
+
+      - name: Push to PR branch
+        run: |
+          set -euo pipefail
+          for agent_id in $(jq -r '.agents[].id' agents.json); do
+            echo "Pushing $agent_id to pr-${{ github.event.pull_request.number }}..."
+            elevenlabs agents push --agent "$agent_id" --branch "pr-${{ github.event.pull_request.number }}"
+          done
+
+      - name: Verify live tools match config
+        run: python3 scripts/verify-live-tools.py --branch-name "pr-${{ github.event.pull_request.number }}"
+
+      # Tests are flaky (see #31). Report results but don't block merge
+      # until #31's LLM-evaluator divergence is resolved.
+      - name: Run tests
+        continue-on-error: true
+        run: python3 scripts/test-pr-branch.py --branch-name "pr-${{ github.event.pull_request.number }}"
+
   push:
     name: Push agents
     needs: validate

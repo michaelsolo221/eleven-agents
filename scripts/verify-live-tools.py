@@ -11,6 +11,7 @@ serialization, not the API. Until that's fixed upstream, this script closes
 the gap: it re-fetches each agent from the live API after push and fails loudly
 if a locally-declared tool didn't make it across.
 """
+import argparse
 import json
 import os
 import sys
@@ -40,6 +41,21 @@ def fetch_live_agent(agent_id):
         return json.loads(resp.read())
 
 
+def find_branch_id(agent_id, branch_name):
+    url = f"https://api.elevenlabs.io/v1/convai/agents/{agent_id}/branches"
+    req = urllib.request.Request(url, headers={"xi-api-key": API_KEY})
+    try:
+        with urllib.request.urlopen(req) as resp:
+            data = json.loads(resp.read())
+    except Exception as e:
+        print(f"  (error listing branches for {agent_id}: {e})")
+        return None
+    for key in ("branches", "items", "results"):
+        for branch in data.get(key, []):
+            if branch.get("name") == branch_name:
+                return branch["id"]
+    return None
+
 def local_tool_names(config):
     prompt = config.get("conversation_config", {}).get("agent", {}).get("prompt", {})
     return {t["name"] for t in prompt.get("tools", []) if "name" in t}
@@ -68,6 +84,10 @@ if not API_KEY:
     sys.exit(0)
 
 agents_data = json.loads((ROOT / "agents.json").read_text())
+parser = argparse.ArgumentParser(description=__doc__)
+parser.add_argument("--branch-name", help="Check a specific branch instead of the default live agent")
+args = parser.parse_args()
+
 for entry in agents_data.get("agents", []):
     config_path = ROOT / entry["config"]
     local = json.loads(config_path.read_text())
@@ -78,27 +98,42 @@ for entry in agents_data.get("agents", []):
         ok(f"{entry['config']}: no tools, webhook, or attached tests declared, nothing to verify")
         continue
     try:
-        live = fetch_live_agent(entry["id"])
+        if args.branch_name:
+            branch_id = find_branch_id(entry["id"], args.branch_name)
+            if not branch_id:
+                fail(f"{entry['config']}: no branch named '{args.branch_name}' found")
+                continue
+            url = f"https://api.elevenlabs.io/v1/convai/agents/{entry['id']}?branch_id={branch_id}"
+            req = urllib.request.Request(url, headers={"xi-api-key": API_KEY})
+            with urllib.request.urlopen(req) as resp:
+                live = json.loads(resp.read())
+        else:
+            live = fetch_live_agent(entry["id"])
     except Exception as e:
-        fail(f"{entry['config']}: could not fetch live agent {entry['id']} — {e}")
+        if args.branch_name:
+            fail(f"{entry['config']}: could not fetch branch '{args.branch_name}' for agent {entry['id']} — {e}")
+        else:
+            fail(f"{entry['config']}: could not fetch live agent {entry['id']} — {e}")
         continue
     if expected_tools:
         actual_tools = live_tool_names(live)
         missing = expected_tools - actual_tools
         if missing:
-            fail(
+            msg = (
                 f"{entry['config']}: tool(s) {sorted(missing)} declared locally but "
-                f"missing from the live agent {entry['id']} after push — the CLI "
-                f"likely dropped them silently during push. Patch the API directly "
-                f"to fix (see scripts/verify-live-tools.py docstring)."
+                f"missing from {'branch ' + args.branch_name if args.branch_name else 'the live agent ' + entry['id']}"
+                f" after push — the CLI likely dropped them silently during push."
+                f" Patch the API directly to fix (see scripts/verify-live-tools.py docstring)."
             )
+            fail(msg)
         else:
             ok(f"{entry['config']}: all {len(expected_tools)} declared tool(s) present live")
     if expected_webhook:
         live_wid = live_webhook_id(live)
         if live_wid != expected_webhook:
+            target = f"branch {args.branch_name}" if args.branch_name else f"live agent {entry['id']}"
             fail(
-                f"{entry['config']}: post_call_webhook_id mismatch — "
+                f"{entry['config']}: post_call_webhook_id mismatch on {target} — "
                 f"local: {expected_webhook}, live: {live_wid}"
             )
         else:
@@ -107,9 +142,10 @@ for entry in agents_data.get("agents", []):
         live_tests = attached_test_ids(live)
         missing = expected_tests - live_tests
         if missing:
+            target = f"branch {args.branch_name}" if args.branch_name else f"live agent {entry['id']}"
             fail(
                 f"{entry['config']}: attached test(s) {sorted(missing)} declared locally "
-                f"but missing from the live agent {entry['id']} after push — same CLI "
+                f"but missing from {target} after push — same CLI "
                 f"silent-drop failure mode as tools/webhook (see #29, #35)."
             )
         else:
