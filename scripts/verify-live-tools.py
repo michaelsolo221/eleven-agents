@@ -58,6 +58,11 @@ def local_webhook_id(config):
 def live_webhook_id(agent):
     return agent.get("platform_settings", {}).get("workspace_overrides", {}).get("webhooks", {}).get("post_call_webhook_id")
 
+
+def attached_test_ids(config):
+    tests = config.get("platform_settings", {}).get("testing", {}).get("attached_tests", [])
+    return {t["test_id"] for t in tests if "test_id" in t}
+
 if not API_KEY:
     print("ELEVENLABS_API_KEY not set — skipping live verification")
     sys.exit(0)
@@ -68,8 +73,9 @@ for entry in agents_data.get("agents", []):
     local = json.loads(config_path.read_text())
     expected_tools = local_tool_names(local)
     expected_webhook = local_webhook_id(local)
-    if not expected_tools and not expected_webhook:
-        ok(f"{entry['config']}: no tools or webhook declared, nothing to verify")
+    expected_tests = attached_test_ids(local)
+    if not expected_tools and not expected_webhook and not expected_tests:
+        ok(f"{entry['config']}: no tools, webhook, or attached tests declared, nothing to verify")
         continue
     try:
         live = fetch_live_agent(entry["id"])
@@ -97,6 +103,17 @@ for entry in agents_data.get("agents", []):
             )
         else:
             ok(f"{entry['config']}: post_call_webhook_id matches live")
+    if expected_tests:
+        live_tests = attached_test_ids(live)
+        missing = expected_tests - live_tests
+        if missing:
+            fail(
+                f"{entry['config']}: attached test(s) {sorted(missing)} declared locally "
+                f"but missing from the live agent {entry['id']} after push — same CLI "
+                f"silent-drop failure mode as tools/webhook (see #29, #35)."
+            )
+        else:
+            ok(f"{entry['config']}: all {len(expected_tests)} attached test(s) present live")
 
 print(f"\n{'='*40}")
 if errors:

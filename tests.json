@@ -89,6 +89,16 @@
             "config": "test_configs/Claims-Lodgement-Supervisor-confirms-when-complete.json",
             "id": "test_1201kx3earfafg9tebhxzv3e9bwe",
             "type": "llm"
+        },
+        {
+            "config": "test_configs/Claims-Lodgement-Officer-redirects-caller-who-declines-greeting.json",
+            "id": "test_2501kxa0z8jgfn2scpncjpb9td1c",
+            "type": "llm"
+        },
+        {
+            "config": "test_configs/Claims-Lodgement-Supervisor-ends-call-after-lodgement.json",
+            "id": "test_7301kxa0z8xce1s8yafsxf1h28q6",
+            "type": "llm"
         }
     ]
 }

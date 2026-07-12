@@ -50,16 +50,37 @@ before merging an `agent_configs/*.json` change that alters behavior.
 
 ## CLI Commands
 
+CLI is assumed installed (`elevenlabs --version`; if missing, `make install`). Use it over manual API calls or hand-written IDs — it's the source of truth for what's actually live.
+
 - `elevenlabs tests push --config-dir test_configs` — push all test configs from directory
 - `elevenlabs agents test <agent_id> --no-ui` — run tests for specific agent (no `--all` flag)
 - `elevenlabs tests delete --all --no-ui` — clean slate for tests
 - `elevenlabs agents push --dry-run` — preview changes
 
+### New/edited test workflow (required order)
+
+Adding a test config file is not enough — it must be pushed and attached, or it silently never runs (see #29 and its repeat in PR #35):
+
+1. Write the test config in `test_configs/`.
+2. `elevenlabs tests push --config-dir test_configs` — get the real `test_id` back. Never hand-write a `test_xxx` ID into `tests.json`.
+3. Add that real ID to the target agent's `platform_settings.testing.attached_tests` in `agent_configs/*.json`.
+4. `elevenlabs agents push` the agent config.
+5. `python3 scripts/verify-live-tools.py` — confirms attached tests and `post_call_webhook_id` match what's live.
+
 ## CI
 
-- `validate` job checks `agent_configs/*.json` only. Add `test_configs/*.json` schema validation.
-- `test-pr` job runs on PRs: dry-run push + test all agents.
-- `push` and `test` jobs run on main only.
+Defined in `.github/workflows/agents.yml`. Three jobs, no `test-pr` job exists:
+
+- `validate` — runs on every push and PR. Runs `scripts/validate-configs.py`, which checks `agent_configs/*.json`, `tests.json`, `test_configs/*.json`, orphaned files, and that `attached_tests` cross-references `tests.json`.
+- `push` and `test` — main only (`if: github.ref == 'refs/heads/main' && github.event_name == 'push'`). PRs get `validate` only — no dry-run push or test run happens pre-merge, so live platform state (attached tests, tools, webhook) can't be confirmed until after merge. Re-run `python3 scripts/verify-live-tools.py` manually post-merge if a PR touched tests, tools, or the webhook.
+
+## Local↔Platform Sync Fields
+
+Fields like `attached_tests`, tool names, and `post_call_webhook_id` all have the same failure mode: the CLI can silently drop them on push (ADR 0002), and CI's `push`/`test` jobs are main-only, so nothing confirms live state pre-merge (see CI section above). This has caused two real regressions (#29, PR #35).
+
+- Adding a **new** field of this kind: extend `scripts/validate-configs.py` (local cross-reference check) and `scripts/verify-live-tools.py` (live-state check) in the **same commit/PR** that introduces the field. Don't ship the field first and the check later — that gap is exactly how #29 and PR #35 happened.
+- **Definition of done** for any change touching a synced field: run `python3 scripts/verify-live-tools.py` (with `ELEVENLABS_API_KEY` set) yourself before calling the work finished. Don't wait for CI or a review to catch it — CI only checks this post-merge.
+- Note the residual gap even with both checks: a hand-written ID that's *consistent* across `tests.json` and `attached_tests` (same fake string in both) still passes the local check — only the live check catches a genuinely fake/unpushed ID. Prefer IDs that came from a real `elevenlabs tests push`/`agents add` output, never typed by hand.
 
 ## Sub-Agent Coordination
 

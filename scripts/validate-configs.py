@@ -108,6 +108,27 @@ for p in sorted(test_configs_dir.glob("*.json")):
         fail(f"{rel}: exists on disk but not in tests.json")
 ok("no orphaned config files")
 
+# --- 6. Check attached_tests reference real tests.json entries ---
+print("\nAttached-test cross-reference check")
+test_ids = {e["id"] for e in test_list}
+errors_before = len(errors)
+for entry in agent_list:
+    config_path = ROOT / entry["config"]
+    if not config_path.exists():
+        continue
+    data = json.loads(config_path.read_text())
+    attached = data.get("platform_settings", {}).get("testing", {}).get("attached_tests", [])
+    referenced = set(data.get("platform_settings", {}).get("testing", {}).get("referenced_tests_ids", []))
+    attached_ids = {t["test_id"] for t in attached if "test_id" in t}
+    orphans = attached_ids - test_ids
+    if orphans:
+        fail(f"{entry['config']}: attached_tests {sorted(orphans)} not found in tests.json")
+    mismatch = attached_ids.symmetric_difference(referenced)
+    if mismatch:
+        fail(f"{entry['config']}: attached_tests and referenced_tests_ids disagree on {sorted(mismatch)}")
+if len(errors) == errors_before:
+    ok("all attached_tests entries resolve to tests.json")
+
 # --- Summary ---
 print(f"\n{'='*40}")
 if errors:
