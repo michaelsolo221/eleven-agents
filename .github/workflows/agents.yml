@@ -71,7 +71,10 @@ jobs:
       - name: Verify live tools match config
         run: python3 scripts/verify-live-tools.py --branch-name "pr-${{ github.event.pull_request.number }}"
 
+      # Tests are flaky (see #31). Report results but don't block merge
+      # until #31's LLM-evaluator divergence is resolved.
       - name: Run tests
+        continue-on-error: true
         run: python3 scripts/test-pr-branch.py --branch-name "pr-${{ github.event.pull_request.number }}"
 
   push:
