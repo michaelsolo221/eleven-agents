@@ -69,7 +69,7 @@ def build_test_name_map(tests_data):
 
 
 def run_tests(agent_id, branch_id, test_ids):
-    """POST /run-tests and return the response JSON."""
+    """POST /run-tests and return the invocation ID."""
     url = f"{API_BASE}/v1/convai/agents/{agent_id}/run-tests"
     body = json.dumps({
         "tests": [{"test_id": tid} for tid in test_ids],
@@ -84,6 +84,25 @@ def run_tests(agent_id, branch_id, test_ids):
     )
     with urllib.request.urlopen(req) as resp:
         return json.loads(resp.read())
+
+
+def poll_test_invocation(invocation_id, timeout_secs=120):
+    """Poll for test invocation completion. Returns the final test invocation."""
+    import time
+    url = f"{API_BASE}/v1/convai/test-invocations/{invocation_id}"
+    deadline = time.time() + timeout_secs
+    while time.time() < deadline:
+        req = urllib.request.Request(url, headers={"xi-api-key": API_KEY})
+        with urllib.request.urlopen(req) as resp:
+            data = json.loads(resp.read())
+        pending = data.get("pending_count", 0)
+        if pending == 0:
+            return data
+        passed = data.get("passed_count", 0)
+        failed = data.get("failed_count", 0)
+        print(f"  Polling... {passed} passed, {failed} failed, {pending} pending")
+        time.sleep(5)
+    return data  # timeout — return whatever we have
 
 
 def main():
@@ -131,6 +150,10 @@ def main():
             fail(f"Network error running tests for {entry['config']}: {e}")
             continue
 
+        invocation_id = result.get("id")
+        if invocation_id:
+            result = poll_test_invocation(invocation_id)
+
         for run in result.get("test_runs", []):
             tid = run.get("test_id", "?")
             config_name = test_name_map.get(tid, tid)
@@ -138,6 +161,8 @@ def main():
             if status == "passed":
                 ok(config_name)
                 total_passed += 1
+            elif status == "pending":
+                fail(f"{config_name} TIMED OUT (still pending)")
             else:
                 fail(f"{config_name} {status.upper()}")
 
