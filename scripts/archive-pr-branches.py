@@ -13,7 +13,7 @@ import urllib.error
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-API_BASE = "https://api.elevenlabs.io/v1/convai"
+API_BASE = "https://api.elevenlabs.io"
 API_KEY = os.environ.get("ELEVENLABS_API_KEY")
 
 
@@ -27,7 +27,7 @@ def ok(msg):
 
 
 def find_branch_id(agent_id, branch_name):
-    url = f"{API_BASE}/agents/{agent_id}/branches"
+    url = f"{API_BASE}/v1/convai/agents/{agent_id}/branches"
     req = urllib.request.Request(url, headers={"xi-api-key": API_KEY})
     try:
         with urllib.request.urlopen(req) as resp:
@@ -43,7 +43,7 @@ def find_branch_id(agent_id, branch_name):
 
 
 def archive_branch(agent_id, branch_id):
-    url = f"{API_BASE}/agents/{agent_id}/branches/{branch_id}"
+    url = f"{API_BASE}/v1/convai/agents/{agent_id}/branches/{branch_id}"
     body = json.dumps({"archived": True}).encode("utf-8")
     req = urllib.request.Request(
         url,
