@@ -39,10 +39,9 @@ jobs:
 
       - name: Push to PR branch
         run: |
-          for config in $(jq -r '.agents[].config' agents.json); do
-            agent_name=$(jq -r '.name' "$config")
-            echo "Pushing $agent_name to pr-${{ github.event.pull_request.number }}..."
-            elevenlabs agents push --agent "$agent_name" --branch "pr-${{ github.event.pull_request.number }}"
+          for agent_id in $(jq -r '.agents[].id' agents.json); do
+            echo "Pushing $agent_id to pr-${{ github.event.pull_request.number }}..."
+            elevenlabs agents push --agent "$agent_id" --branch "pr-${{ github.event.pull_request.number }}"
           done
 
       - name: Verify live tools match config
