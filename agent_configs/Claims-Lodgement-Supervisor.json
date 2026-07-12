@@ -1,519 +1,519 @@
 {
-    "name": "Claims Lodgement Supervisor",
-    "conversation_config": {
+  "name": "Claims Lodgement Supervisor",
+  "conversation_config": {
+    "asr": {
+      "quality": "high",
+      "provider": "scribe_realtime",
+      "user_input_audio_format": "pcm_16000",
+      "keywords": []
+    },
+    "turn": {
+      "turn_timeout": 7,
+      "silence_end_call_timeout": -1,
+      "mode": "turn",
+      "turn_eagerness": "normal",
+      "spelling_patience": "auto",
+      "speculative_turn": false,
+      "retranscribe_on_turn_timeout": false,
+      "turn_model": "turn_v3",
+      "interruption_ignore_terms": [],
+      "interruption_ignore_term_languages": [],
+      "transcribe_on_disabled_interruptions": false,
+      "soft_timeout_config": {
+        "timeout_seconds": -1,
+        "message": "Hhmmmm...yeah.",
+        "additional_soft_timeout_messages": [],
+        "use_llm_generated_message": false,
+        "randomize_fillers": false,
+        "max_soft_timeouts_per_generation": 1
+      }
+    },
+    "tts": {
+      "model_id": "eleven_flash_v2",
+      "voice_id": "0QT4OrDTvpDlUPmFsUWN",
+      "supported_voices": [],
+      "expressive_mode": false,
+      "suggested_audio_tags": [],
+      "agent_output_audio_format": "pcm_16000",
+      "optimize_streaming_latency": 2,
+      "stability": 0.5,
+      "speed": 1,
+      "similarity_boost": 0.8,
+      "text_normalisation_type": "elevenlabs",
+      "pronunciation_dictionary_locators": [],
+      "enable_phoneme_tags": false,
+      "audio_filter": null
+    },
+    "conversation": {
+      "text_only": false,
+      "max_duration_seconds": 7200,
+      "client_events": [
+        "audio",
+        "interruption",
+        "agent_response",
+        "agent_chat_response_part"
+      ],
+      "file_input": {
+        "enabled": true,
+        "max_files_per_conversation": 10
+      },
+      "monitoring_enabled": false,
+      "monitoring_events": [
+        "user_transcript",
+        "agent_response",
+        "agent_response_correction"
+      ],
+      "dtmf_input_settings": null,
+      "background_sound": {
+        "volume": 0.6,
+        "crossfade_loop": false
+      },
+      "source_attribution": false
+    },
+    "language_presets": {},
+    "vad": {
+      "background_voice_detection": false
+    },
+    "agent": {
+      "first_message": "",
+      "language": "en",
+      "hinglish_mode": false,
+      "dynamic_variables": {
+        "dynamic_variable_placeholders": {}
+      },
+      "disable_first_message_interruptions": false,
+      "max_conversation_duration_message": "This conversation session has ended. If you still need to lodge a claim, please start a new conversation.",
+      "text_behavior_overrides": {
+        "whatsapp": {
+          "interaction_budget": "1_hour"
+        }
+      },
+      "prompt": {
+        "prompt": "# Personality\nYou are the CGU Claims Supervisor. You do not open conversations with claimants — you only ever take over a claim after a Claims Officer (Amanda) has already collected the details.\n\n# Environment\nYou are continuing a phone or WhatsApp conversation that has just been transferred to you by the Claims Officer. The system variable {{system__is_text_only}} tells you if this is a text-only conversation. The claimant does not know you by a separate name — do not introduce yourself as a new person joining the call. Continue naturally, as the next step in the same conversation.\n\n# Context — Conversation So Far\nHere is the full conversation between the claimant and the Claims Officer up to this point:\n{{system__conversation_history}}\n\n# Goal\nYour only job is to validate that all required claim information has actually been collected — by reading the conversation above directly, not by assuming the officer's transfer means everything is present — then either confirm and lodge the claim, or collect any missing fields.\n\n# Tone\n- Professional and efficient\n- Confirmatory — repeat back key details to the claimant\n- Brief — do not repeat questions already answered\n\n# First — Determine the Transfer Type\nRead the conversation history. If the officer transferred because:\n- **The caller was unresponsive** (officer prompted once, no response): Call end_call immediately with no message. The conversation is over.\n- **WhatsApp session timed out** (officer said they were closing): Call end_call immediately with no message. The conversation is over.\n- **A claim was collected** (policy number present, claim type established): Proceed to Validation Process below.\n- **None of the above**: Proceed to Validation Process below — treat it as a claim lodgement.\n\n# Validation Process\nThis step is important. Read through the conversation history above and check each required field for the claim type already established:\n\n## Vehicle Claim Required Fields:\n1. Policy number\n2. What happened\n3. Date and time of incident\n4. Vehicle registration number\n5. Incident location\n6. Contact method (email OR phone)\n7. First name (on voice calls: with spelling confirmed by the claimant in any form (agent guessing and claimant confirming is fine); on text-only: the typed name is exact)\n8. Last name (on voice calls: with spelling confirmed by the claimant in any form (agent guessing and claimant confirming is fine); on text-only: the typed name is exact)\n\n## Property Claim Required Fields:\n1. Policy number\n2. What happened\n3. Date and time of incident\n4. Property address\n5. Contact method (email OR phone)\n6. First name (on voice calls: with spelling confirmed by the claimant in any form (agent guessing and claimant confirming is fine); on text-only: the typed name is exact)\n7. Last name (on voice calls: with spelling confirmed by the claimant in any form (agent guessing and claimant confirming is fine); on text-only: the typed name is exact)\n\n# What to Do\nThis step is important — go through it explicitly, in order, every single time, even if the transfer made it feel like everything is already done:\n1. Read through the entire conversation history above, word for word.\n2. Write out the required field list for the established claim type. For EACH field individually, find the exact place in the transcript where the claimant stated it. If you cannot point to a specific place where a field was stated, it is MISSING — a field being \"probably implied\" or \"likely covered\" does not count as present. Pay special attention to incident location (vehicle claims) — it is easy to miss because it is a separate detail from the crash description itself, and to name spelling — a name being spoken is not the same as its spelling being confirmed by the claimant.\n3. Only if you have individually located every single required field in the transcript: say \"I've reviewed all your details and everything looks good. Your claim has been lodged. Expect an email within 1 business day with your claim number.\" Then call end_call. If you have ANY doubt at all about any single field, do not do this — treat it as missing instead and go to step 4.\n4. If ANY field is missing or you were unable to locate it explicitly in the transcript: ask the claimant for ONLY that missing field. Do not re-ask for fields already provided. Do not call end_call yet.\n5. Maximum 2 attempts per missing field. If still not obtainable after 2 attempts, proceed to lodge with whatever information is available — do not loop indefinitely.\n6. After collecting missing fields (or exhausting attempts), confirm all details and call end_call.\n\n# Name Verification\n- **Voice calls ({{system__is_text_only}} is false):** If the claimant's first and last name were provided but spelling was NOT explicitly confirmed by the claimant in the conversation history, ask them to confirm the spelling before lodging. Any confirmation method is acceptable — the officer may have asked them to spell it, or guessed and asked them to confirm. You may ask them to confirm the spelling yourself if it was not done.\n- **Text-only conversations ({{system__is_text_only}} is true):** The typed names in the conversation history are already exact. Do NOT ask for spelling confirmation. Accept the names as-is.\n\n# Guardrails\n- Do NOT collect information already provided in the conversation history\n- Do NOT make small talk — you are a validation step only\n- Do NOT redirect to other services\n- Do NOT introduce yourself as a new person joining the call",
+        "llm": "qwen35-397b-a17b",
+        "opener": null,
+        "enable_reasoning_summary": false,
+        "temperature": 0.7,
+        "max_tokens": -1,
+        "tool_ids": [],
+        "built_in_tools": {
+          "end_call": {
+            "type": "system",
+            "name": "end_call",
+            "description": "",
+            "response_timeout_secs": 20,
+            "disable_interruptions": false,
+            "interruption_mode": "allow",
+            "force_pre_tool_speech": false,
+            "pre_tool_speech": "auto",
+            "assignments": [],
+            "tool_call_sound_behavior": "auto",
+            "tool_error_handling_mode": "auto",
+            "params": {
+              "system_tool_type": "end_call"
+            }
+          },
+          "update_state": null,
+          "memory_entry_search": null,
+          "memory_entry_create": null,
+          "memory_entry_update": null,
+          "memory_entry_delete": null,
+          "agent_prompt_change": null,
+          "procedure_update": null,
+          "procedure_create": null,
+          "procedure_delete": null,
+          "transfer_to_genesys_chat": null,
+          "run_subagent": null
+        },
+        "enable_parallel_tool_calls": false,
+        "mcp_server_ids": [],
+        "native_mcp_server_ids": [],
+        "knowledge_base": [],
+        "speech_engine": null,
+        "ignore_default_personality": false,
+        "rag": {
+          "enabled": false,
+          "embedding_model": "e5_mistral_7b_instruct",
+          "optional_rag_enabled": false,
+          "max_vector_distance": 0.6,
+          "max_documents_length": 50000,
+          "max_retrieved_rag_chunks_count": 20
+        },
+        "timezone": "Australia/Sydney",
+        "backup_llm_config": {
+          "preference": "default"
+        },
+        "cascade_timeout_seconds": 8,
+        "tools": [
+          {
+            "type": "system",
+            "name": "end_call",
+            "description": "",
+            "response_timeout_secs": 20,
+            "disable_interruptions": false,
+            "interruption_mode": "allow",
+            "force_pre_tool_speech": false,
+            "pre_tool_speech": "auto",
+            "assignments": [],
+            "tool_call_sound_behavior": "auto",
+            "tool_error_handling_mode": "auto",
+            "params": {
+              "system_tool_type": "end_call"
+            }
+          }
+        ]
+      }
+    }
+  },
+  "platform_settings": {
+    "evaluation": {
+      "criteria": [
+        {
+          "id": "supervisor-verifies-against-transcript",
+          "name": "Verifies against transcript, not assumption",
+          "type": "prompt",
+          "conversation_goal_prompt": "The supervisor's assessment of claim completeness is grounded in what was actually said in the conversation history, not merely assumed complete because the officer transferred the call. If fields are genuinely missing from the transcript, the supervisor asks for them rather than declaring the claim lodged.",
+          "use_knowledge_base": false,
+          "scope": "conversation",
+          "scoring_mode": "binary",
+          "max_score": 100
+        },
+        {
+          "id": "supervisor-respects-retry-cap",
+          "name": "Respects the two-attempt retry cap",
+          "type": "prompt",
+          "conversation_goal_prompt": "If a required field remains unavailable after two attempts by the supervisor to collect it, the supervisor proceeds to lodge the claim with whatever information is available rather than looping indefinitely.",
+          "use_knowledge_base": false,
+          "scope": "conversation",
+          "scoring_mode": "binary",
+          "max_score": 100
+        },
+        {
+          "id": "gives-correct-closing-message",
+          "name": "Gives correct closing message",
+          "type": "prompt",
+          "conversation_goal_prompt": "After lodging the claim, the agent tells the claimant to expect an email within 1 business day with their claim number. The agent uses language consistent with 'Your claim has been lodged. Expect an email within 1 business day with your claim number.'",
+          "use_knowledge_base": false,
+          "scope": "conversation",
+          "scoring_mode": "binary",
+          "max_score": 100
+        }
+      ]
+    },
+    "widget": {
+      "variant": "full",
+      "placement": "bottom-right",
+      "expandable": "never",
+      "avatar": {
+        "type": "orb",
+        "color1": "#2792dc",
+        "color2": "#9ce6e6"
+      },
+      "feedback_mode": "none",
+      "end_feedback": {
+        "type": "rating"
+      },
+      "bg_color": "#ffffff",
+      "text_color": "#000000",
+      "btn_color": "#000000",
+      "btn_text_color": "#ffffff",
+      "border_color": "#e1e1e1",
+      "focus_color": "#000000",
+      "shareable_page_show_terms": true,
+      "show_avatar_when_collapsed": false,
+      "disable_banner": false,
+      "markdown_link_allowed_hosts": [],
+      "markdown_link_include_www": true,
+      "markdown_link_allow_http": true,
+      "mic_muting_enabled": false,
+      "transcript_enabled": false,
+      "text_input_enabled": true,
+      "conversation_mode_toggle_enabled": false,
+      "default_expanded": false,
+      "always_expanded": false,
+      "dismissible": false,
+      "show_agent_status": false,
+      "show_conversation_id": true,
+      "strip_audio_tags": true,
+      "text_contents": {},
+      "styles": {},
+      "language_selector": false,
+      "supports_text_only": true,
+      "language_presets": {}
+    },
+    "data_collection": {
+      "policy_number": {
+        "type": "string",
+        "description": "The policy number provided by the claimant",
+        "is_system_provided": false,
+        "dynamic_variable": "",
+        "allowed_values_dynamic_variable": "",
+        "constant_value": "",
+        "is_omitted": false
+      },
+      "what_happened": {
+        "type": "string",
+        "description": "Description of the incident",
+        "is_system_provided": false,
+        "dynamic_variable": "",
+        "allowed_values_dynamic_variable": "",
+        "constant_value": "",
+        "is_omitted": false
+      },
+      "incident_datetime": {
+        "type": "string",
+        "description": "Date and time of the incident",
+        "is_system_provided": false,
+        "dynamic_variable": "",
+        "allowed_values_dynamic_variable": "",
+        "constant_value": "",
+        "is_omitted": false
+      },
+      "claim_type": {
+        "type": "string",
+        "description": "Whether the claim is for a vehicle or property",
+        "is_system_provided": false,
+        "dynamic_variable": "",
+        "allowed_values_dynamic_variable": "",
+        "constant_value": "",
+        "is_omitted": false
+      },
+      "vehicle_registration": {
+        "type": "string",
+        "description": "Vehicle registration number (vehicle claims only)",
+        "is_system_provided": false,
+        "dynamic_variable": "",
+        "allowed_values_dynamic_variable": "",
+        "constant_value": "",
+        "is_omitted": false
+      },
+      "property_address": {
+        "type": "string",
+        "description": "Property address — serves as both risk asset and incident location (property claims only)",
+        "is_system_provided": false,
+        "dynamic_variable": "",
+        "allowed_values_dynamic_variable": "",
+        "constant_value": "",
+        "is_omitted": false
+      },
+      "incident_location": {
+        "type": "string",
+        "description": "Location where the incident occurred (vehicle claims only)",
+        "is_system_provided": false,
+        "dynamic_variable": "",
+        "allowed_values_dynamic_variable": "",
+        "constant_value": "",
+        "is_omitted": false
+      },
+      "contact_method": {
+        "type": "string",
+        "description": "Contact method — email address or phone number",
+        "is_system_provided": false,
+        "dynamic_variable": "",
+        "allowed_values_dynamic_variable": "",
+        "constant_value": "",
+        "is_omitted": false
+      },
+      "first_name": {
+        "type": "string",
+        "description": "Claimant's first name",
+        "is_system_provided": false,
+        "dynamic_variable": "",
+        "allowed_values_dynamic_variable": "",
+        "constant_value": "",
+        "is_omitted": false
+      },
+      "last_name": {
+        "type": "string",
+        "description": "Claimant's last name",
+        "is_system_provided": false,
+        "dynamic_variable": "",
+        "allowed_values_dynamic_variable": "",
+        "constant_value": "",
+        "is_omitted": false
+      },
+      "nominated_representative": {
+        "type": "boolean",
+        "description": "Whether the caller is a nominated representative calling on behalf of the policyholder",
+        "is_system_provided": false,
+        "dynamic_variable": "",
+        "allowed_values_dynamic_variable": "",
+        "constant_value": "",
+        "is_omitted": false
+      }
+    },
+    "data_collection_scopes": {},
+    "overrides": {
+      "conversation_config_override": {
         "asr": {
-            "quality": "high",
-            "provider": "scribe_realtime",
-            "user_input_audio_format": "pcm_16000",
-            "keywords": []
+          "keywords": false
         },
         "turn": {
-            "turn_timeout": 7,
-            "silence_end_call_timeout": -1,
-            "mode": "turn",
-            "turn_eagerness": "normal",
-            "spelling_patience": "auto",
-            "speculative_turn": false,
-            "retranscribe_on_turn_timeout": false,
-            "turn_model": "turn_v3",
-            "interruption_ignore_terms": [],
-            "interruption_ignore_term_languages": [],
-            "transcribe_on_disabled_interruptions": false,
-            "soft_timeout_config": {
-                "timeout_seconds": -1,
-                "message": "Hhmmmm...yeah.",
-                "additional_soft_timeout_messages": [],
-                "use_llm_generated_message": false,
-                "randomize_fillers": false,
-                "max_soft_timeouts_per_generation": 1
-            }
+          "soft_timeout_config": {
+            "message": false
+          }
         },
         "tts": {
-            "model_id": "eleven_flash_v2",
-            "voice_id": "0QT4OrDTvpDlUPmFsUWN",
-            "supported_voices": [],
-            "expressive_mode": false,
-            "suggested_audio_tags": [],
-            "agent_output_audio_format": "pcm_16000",
-            "optimize_streaming_latency": 2,
-            "stability": 0.5,
-            "speed": 1,
-            "similarity_boost": 0.8,
-            "text_normalisation_type": "elevenlabs",
-            "pronunciation_dictionary_locators": [],
-            "enable_phoneme_tags": false,
-            "audio_filter": null
+          "voice_id": false,
+          "stability": false,
+          "speed": false,
+          "similarity_boost": false
         },
         "conversation": {
-            "text_only": false,
-            "max_duration_seconds": 7200,
-            "client_events": [
-                "audio",
-                "interruption",
-                "agent_response",
-                "agent_chat_response_part"
-            ],
-            "file_input": {
-                "enabled": true,
-                "max_files_per_conversation": 10
-            },
-            "monitoring_enabled": false,
-            "monitoring_events": [
-                "user_transcript",
-                "agent_response",
-                "agent_response_correction"
-            ],
-            "dtmf_input_settings": null,
-            "background_sound": {
-                "volume": 0.6,
-                "crossfade_loop": false
-            },
-            "source_attribution": false
-        },
-        "language_presets": {},
-        "vad": {
-            "background_voice_detection": false
+          "text_only": true
         },
         "agent": {
-            "first_message": "",
-            "language": "en",
-            "hinglish_mode": false,
-            "dynamic_variables": {
-                "dynamic_variable_placeholders": {}
-            },
-            "disable_first_message_interruptions": false,
-            "max_conversation_duration_message": "This conversation session has ended. If you still need to lodge a claim, please start a new conversation.",
-            "text_behavior_overrides": {
-                "whatsapp": {
-                    "interaction_budget": "1_hour"
-                }
-            },
-            "prompt": {
-                "prompt": "# Personality\nYou are the CGU Claims Supervisor. You do not open conversations with claimants \u2014 you only ever take over a claim after a Claims Officer (Amanda) has already collected the details.\n\n# Environment\nYou are continuing a phone or WhatsApp conversation that has just been transferred to you by the Claims Officer. The system variable {{system__is_text_only}} tells you if this is a text-only conversation. The claimant does not know you by a separate name \u2014 do not introduce yourself as a new person joining the call. Continue naturally, as the next step in the same conversation.\n\n# Context \u2014 Conversation So Far\nHere is the full conversation between the claimant and the Claims Officer up to this point:\n{{system__conversation_history}}\n\n# Goal\nYour only job is to validate that all required claim information has actually been collected \u2014 by reading the conversation above directly, not by assuming the officer's transfer means everything is present \u2014 then either confirm and lodge the claim, or collect any missing fields.\n\n# Tone\n- Professional and efficient\n- Confirmatory \u2014 repeat back key details to the claimant\n- Brief \u2014 do not repeat questions already answered\n\n# Validation Process\nThis step is important. Read through the conversation history above and check each required field for the claim type already established:\n\n## Vehicle Claim Required Fields:\n1. Policy number\n2. What happened\n3. Date and time of incident\n4. Vehicle registration number\n5. Incident location\n6. Contact method (email OR phone)\n7. First name (on voice calls: with spelling confirmed; on text-only: the typed name is exact)\n8. Last name (on voice calls: with spelling confirmed; on text-only: the typed name is exact)\n\n## Property Claim Required Fields:\n1. Policy number\n2. What happened\n3. Date and time of incident\n4. Property address\n5. Contact method (email OR phone)\n6. First name (on voice calls: with spelling confirmed; on text-only: the typed name is exact)\n7. Last name (on voice calls: with spelling confirmed; on text-only: the typed name is exact)\n\n# What to Do\nThis step is important \u2014 go through it explicitly, in order, every single time, even if the transfer made it feel like everything is already done:\n1. Read through the entire conversation history above, word for word.\n2. Write out the required field list for the established claim type. For EACH field individually, find the exact place in the transcript where the claimant stated it. If you cannot point to a specific place where a field was stated, it is MISSING \u2014 a field being \"probably implied\" or \"likely covered\" does not count as present. Pay special attention to incident location (vehicle claims) \u2014 it is easy to miss because it is a separate detail from the crash description itself, and to name spelling \u2014 a name being spoken is not the same as its spelling being confirmed.\n3. Only if you have individually located every single required field in the transcript: say \"I've reviewed all your details and everything looks good. Your claim has been lodged. Expect an email within 1 business day with your claim number.\" Then call end_call. If you have ANY doubt at all about any single field, do not do this \u2014 treat it as missing instead and go to step 4.\n4. If ANY field is missing or you were unable to locate it explicitly in the transcript: ask the claimant for ONLY that missing field. Do not re-ask for fields already provided. Do not call end_call yet.\n5. Maximum 2 attempts per missing field. If still not obtainable after 2 attempts, proceed to lodge with whatever information is available \u2014 do not loop indefinitely.\n6. After collecting missing fields (or exhausting attempts), confirm all details and call end_call.\n\n# Name Verification\n- **Voice calls ({{system__is_text_only}} is false):** If the claimant's first and last name were provided but spelling was NOT explicitly confirmed in the conversation history, ask them to spell it out before confirming.\n- **Text-only conversations ({{system__is_text_only}} is true):** The typed names in the conversation history are already exact. Do NOT ask for spelling confirmation. Accept the names as-is.\n\n# Guardrails\n- Do NOT collect information already provided in the conversation history\n- Do NOT make small talk \u2014 you are a validation step only\n- Do NOT redirect to other services\n- Do NOT introduce yourself as a new person joining the call",
-                "llm": "qwen35-397b-a17b",
-                "opener": null,
-                "enable_reasoning_summary": false,
-                "temperature": 0.7,
-                "max_tokens": -1,
-                "tool_ids": [],
-                "built_in_tools": {
-                    "end_call": {
-                        "type": "system",
-                        "name": "end_call",
-                        "description": "",
-                        "response_timeout_secs": 20,
-                        "disable_interruptions": false,
-                        "interruption_mode": "allow",
-                        "force_pre_tool_speech": false,
-                        "pre_tool_speech": "auto",
-                        "assignments": [],
-                        "tool_call_sound_behavior": "auto",
-                        "tool_error_handling_mode": "auto",
-                        "params": {
-                            "system_tool_type": "end_call"
-                        }
-                    },
-                    "update_state": null,
-                    "memory_entry_search": null,
-                    "memory_entry_create": null,
-                    "memory_entry_update": null,
-                    "memory_entry_delete": null,
-                    "agent_prompt_change": null,
-                    "procedure_update": null,
-                    "procedure_create": null,
-                    "procedure_delete": null,
-                    "transfer_to_genesys_chat": null,
-                    "run_subagent": null
-                },
-                "enable_parallel_tool_calls": false,
-                "mcp_server_ids": [],
-                "native_mcp_server_ids": [],
-                "knowledge_base": [],
-                "speech_engine": null,
-                "ignore_default_personality": false,
-                "rag": {
-                    "enabled": false,
-                    "embedding_model": "e5_mistral_7b_instruct",
-                    "optional_rag_enabled": false,
-                    "max_vector_distance": 0.6,
-                    "max_documents_length": 50000,
-                    "max_retrieved_rag_chunks_count": 20
-                },
-                "timezone": "Australia/Sydney",
-                "backup_llm_config": {
-                    "preference": "default"
-                },
-                "cascade_timeout_seconds": 8,
-                "tools": [
-                    {
-                        "type": "system",
-                        "name": "end_call",
-                        "description": "",
-                        "response_timeout_secs": 20,
-                        "disable_interruptions": false,
-                        "interruption_mode": "allow",
-                        "force_pre_tool_speech": false,
-                        "pre_tool_speech": "auto",
-                        "assignments": [],
-                        "tool_call_sound_behavior": "auto",
-                        "tool_error_handling_mode": "auto",
-                        "params": {
-                            "system_tool_type": "end_call"
-                        }
-                    }
-                ]
-            }
+          "first_message": false,
+          "language": false,
+          "max_conversation_duration_message": false,
+          "prompt": {
+            "prompt": false,
+            "llm": false,
+            "tool_ids": false,
+            "native_mcp_server_ids": false,
+            "knowledge_base": false
+          }
         }
+      },
+      "custom_llm_extra_body": false,
+      "enable_conversation_initiation_client_data_from_webhook": false,
+      "enable_starting_workflow_node_id_from_client": false
     },
-    "platform_settings": {
-        "evaluation": {
-            "criteria": [
-                {
-                    "id": "supervisor-verifies-against-transcript",
-                    "name": "Verifies against transcript, not assumption",
-                    "type": "prompt",
-                    "conversation_goal_prompt": "The supervisor's assessment of claim completeness is grounded in what was actually said in the conversation history, not merely assumed complete because the officer transferred the call. If fields are genuinely missing from the transcript, the supervisor asks for them rather than declaring the claim lodged.",
-                    "use_knowledge_base": false,
-                    "scope": "conversation",
-                    "scoring_mode": "binary",
-                    "max_score": 100
-                },
-                {
-                    "id": "supervisor-respects-retry-cap",
-                    "name": "Respects the two-attempt retry cap",
-                    "type": "prompt",
-                    "conversation_goal_prompt": "If a required field remains unavailable after two attempts by the supervisor to collect it, the supervisor proceeds to lodge the claim with whatever information is available rather than looping indefinitely.",
-                    "use_knowledge_base": false,
-                    "scope": "conversation",
-                    "scoring_mode": "binary",
-                    "max_score": 100
-                },
-                {
-                    "id": "gives-correct-closing-message",
-                    "name": "Gives correct closing message",
-                    "type": "prompt",
-                    "conversation_goal_prompt": "After lodging the claim, the agent tells the claimant to expect an email within 1 business day with their claim number. The agent uses language consistent with 'Your claim has been lodged. Expect an email within 1 business day with your claim number.'",
-                    "use_knowledge_base": false,
-                    "scope": "conversation",
-                    "scoring_mode": "binary",
-                    "max_score": 100
-                }
-            ]
+    "workspace_overrides": {
+      "webhooks": {
+        "events": [
+          "transcript"
+        ],
+        "transcript_format": "json",
+        "send_audio": false,
+        "post_call_webhook_id": "4dda02e3d69a49d5bf1b3cf25fc4759d"
+      }
+    },
+    "testing": {
+      "attached_tests": [
+        {
+          "test_id": "test_1201kx3earfafg9tebhxzv3e9bwe"
         },
-        "widget": {
-            "variant": "full",
-            "placement": "bottom-right",
-            "expandable": "never",
-            "avatar": {
-                "type": "orb",
-                "color1": "#2792dc",
-                "color2": "#9ce6e6"
-            },
-            "feedback_mode": "none",
-            "end_feedback": {
-                "type": "rating"
-            },
-            "bg_color": "#ffffff",
-            "text_color": "#000000",
-            "btn_color": "#000000",
-            "btn_text_color": "#ffffff",
-            "border_color": "#e1e1e1",
-            "focus_color": "#000000",
-            "shareable_page_show_terms": true,
-            "show_avatar_when_collapsed": false,
-            "disable_banner": false,
-            "markdown_link_allowed_hosts": [],
-            "markdown_link_include_www": true,
-            "markdown_link_allow_http": true,
-            "mic_muting_enabled": false,
-            "transcript_enabled": false,
-            "text_input_enabled": true,
-            "conversation_mode_toggle_enabled": false,
-            "default_expanded": false,
-            "always_expanded": false,
-            "dismissible": false,
-            "show_agent_status": false,
-            "show_conversation_id": true,
-            "strip_audio_tags": true,
-            "text_contents": {},
-            "styles": {},
-            "language_selector": false,
-            "supports_text_only": true,
-            "language_presets": {}
+        {
+          "test_id": "test_6801kx3ear77fw7a5xvh9vqs9ryv"
         },
-        "data_collection": {
-            "policy_number": {
-                "type": "string",
-                "description": "The policy number provided by the claimant",
-                "is_system_provided": false,
-                "dynamic_variable": "",
-                "allowed_values_dynamic_variable": "",
-                "constant_value": "",
-                "is_omitted": false
-            },
-            "what_happened": {
-                "type": "string",
-                "description": "Description of the incident",
-                "is_system_provided": false,
-                "dynamic_variable": "",
-                "allowed_values_dynamic_variable": "",
-                "constant_value": "",
-                "is_omitted": false
-            },
-            "incident_datetime": {
-                "type": "string",
-                "description": "Date and time of the incident",
-                "is_system_provided": false,
-                "dynamic_variable": "",
-                "allowed_values_dynamic_variable": "",
-                "constant_value": "",
-                "is_omitted": false
-            },
-            "claim_type": {
-                "type": "string",
-                "description": "Whether the claim is for a vehicle or property",
-                "is_system_provided": false,
-                "dynamic_variable": "",
-                "allowed_values_dynamic_variable": "",
-                "constant_value": "",
-                "is_omitted": false
-            },
-            "vehicle_registration": {
-                "type": "string",
-                "description": "Vehicle registration number (vehicle claims only)",
-                "is_system_provided": false,
-                "dynamic_variable": "",
-                "allowed_values_dynamic_variable": "",
-                "constant_value": "",
-                "is_omitted": false
-            },
-            "property_address": {
-                "type": "string",
-                "description": "Property address \u2014 serves as both risk asset and incident location (property claims only)",
-                "is_system_provided": false,
-                "dynamic_variable": "",
-                "allowed_values_dynamic_variable": "",
-                "constant_value": "",
-                "is_omitted": false
-            },
-            "incident_location": {
-                "type": "string",
-                "description": "Location where the incident occurred (vehicle claims only)",
-                "is_system_provided": false,
-                "dynamic_variable": "",
-                "allowed_values_dynamic_variable": "",
-                "constant_value": "",
-                "is_omitted": false
-            },
-            "contact_method": {
-                "type": "string",
-                "description": "Contact method \u2014 email address or phone number",
-                "is_system_provided": false,
-                "dynamic_variable": "",
-                "allowed_values_dynamic_variable": "",
-                "constant_value": "",
-                "is_omitted": false
-            },
-            "first_name": {
-                "type": "string",
-                "description": "Claimant's first name",
-                "is_system_provided": false,
-                "dynamic_variable": "",
-                "allowed_values_dynamic_variable": "",
-                "constant_value": "",
-                "is_omitted": false
-            },
-            "last_name": {
-                "type": "string",
-                "description": "Claimant's last name",
-                "is_system_provided": false,
-                "dynamic_variable": "",
-                "allowed_values_dynamic_variable": "",
-                "constant_value": "",
-                "is_omitted": false
-            },
-            "nominated_representative": {
-                "type": "boolean",
-                "description": "Whether the caller is a nominated representative calling on behalf of the policyholder",
-                "is_system_provided": false,
-                "dynamic_variable": "",
-                "allowed_values_dynamic_variable": "",
-                "constant_value": "",
-                "is_omitted": false
-            }
-        },
-        "data_collection_scopes": {},
-        "overrides": {
-            "conversation_config_override": {
-                "asr": {
-                    "keywords": false
-                },
-                "turn": {
-                    "soft_timeout_config": {
-                        "message": false
-                    }
-                },
-                "tts": {
-                    "voice_id": false,
-                    "stability": false,
-                    "speed": false,
-                    "similarity_boost": false
-                },
-                "conversation": {
-                    "text_only": true
-                },
-                "agent": {
-                    "first_message": false,
-                    "language": false,
-                    "max_conversation_duration_message": false,
-                    "prompt": {
-                        "prompt": false,
-                        "llm": false,
-                        "tool_ids": false,
-                        "native_mcp_server_ids": false,
-                        "knowledge_base": false
-                    }
-                }
-            },
-            "custom_llm_extra_body": false,
-            "enable_conversation_initiation_client_data_from_webhook": false,
-            "enable_starting_workflow_node_id_from_client": false
-        },
-        "workspace_overrides": {
-            "webhooks": {
-                "events": [
-                    "transcript"
-                ],
-                "transcript_format": "json",
-                "send_audio": false,
-                "post_call_webhook_id": "4dda02e3d69a49d5bf1b3cf25fc4759d"
-            }
-        },
-        "testing": {
-            "attached_tests": [
-                {
-                    "test_id": "test_1201kx3earfafg9tebhxzv3e9bwe"
-                },
-                {
-                    "test_id": "test_6801kx3ear77fw7a5xvh9vqs9ryv"
-                },
-                {
-                    "test_id": "test_7301kxa0z8xce1s8yafsxf1h28q6"
-                }
-            ],
-            "referenced_tests_ids": [
-                "test_1201kx3earfafg9tebhxzv3e9bwe",
-                "test_6801kx3ear77fw7a5xvh9vqs9ryv",
-                "test_7301kxa0z8xce1s8yafsxf1h28q6"
-            ]
-        },
-        "archived": false,
-        "guardrails": {
-            "version": "1",
-            "focus": {
-                "is_enabled": true
-            },
-            "prompt_injection": {
-                "is_enabled": true
-            },
-            "content": {
-                "execution_mode": "streaming",
-                "config": {
-                    "sexual": {
-                        "is_enabled": false,
-                        "threshold": "medium"
-                    },
-                    "violence": {
-                        "is_enabled": false,
-                        "threshold": "medium"
-                    },
-                    "harassment": {
-                        "is_enabled": true,
-                        "threshold": 0.5
-                    },
-                    "self_harm": {
-                        "is_enabled": false,
-                        "threshold": "medium"
-                    },
-                    "profanity": {
-                        "is_enabled": true,
-                        "threshold": 0.5
-                    },
-                    "religion_or_politics": {
-                        "is_enabled": false,
-                        "threshold": "medium"
-                    },
-                    "medical_and_legal_information": {
-                        "is_enabled": false,
-                        "threshold": "medium"
-                    }
-                },
-                "trigger_action": {
-                    "type": "end_call"
-                }
-            },
-            "moderation": null,
-            "custom": {
-                "config": {
-                    "configs": [
-                        {
-                            "is_enabled": true,
-                            "name": "Claim completeness before closing",
-                            "prompt": "Block only when the agent's response ends the call, confirms the claim has been lodged, or calls end_call, WITHOUT the conversation having actually established all required claim fields. Required fields: claim type (vehicle or property), what happened, date and time of incident, vehicle registration number OR property address (matching the claim type), incident location (vehicle claims only), a contact method (email or phone), and both first and last name with spelling explicitly confirmed by the claimant. Policy number is best-effort and must NOT block closing if missing. Do not block responses that are still asking questions or asking the claimant for missing fields \u2014 only block a response that treats the claim as complete and lodged while a required field above is actually absent from the transcript.",
-                            "execution_mode": "blocking",
-                            "model": "gemini-2.5-flash-lite",
-                            "history_message_count": 0,
-                            "history_include_tool_calls": false,
-                            "trigger_action": {
-                                "type": "retry",
-                                "feedback": "You attempted to close the call as complete, but the conversation transcript is missing: {{trigger_reason}}. Do not confirm the claim as lodged or call end_call. Ask the claimant for the specific missing field(s) first."
-                            }
-                        }
-                    ]
-                }
-            }
-        },
-        "auto_translate_transcript_to_app_language": null,
-        "auth": {
-            "enable_auth": false,
-            "allowlist": [],
-            "require_origin_header": false
-        },
-        "call_limits": {
-            "agent_concurrency_limit": -1,
-            "daily_limit": 100000,
-            "bursting_enabled": true
-        },
-        "ban": null,
-        "smb_metadata": null,
-        "privacy": {
-            "record_voice": true,
-            "retention_days": -1,
-            "delete_transcript_and_pii": false,
-            "delete_audio": false,
-            "apply_to_existing_conversations": false,
-            "zero_retention_mode": false,
-            "conversation_history_redaction": {
-                "enabled": false,
-                "entities": []
-            }
-        },
-        "trust_context": "unknown",
-        "analysis_llm": "gemini-2.5-flash",
-        "topic_discovery": {
-            "enabled": true
-        },
-        "sentiment_analysis": {
-            "enabled": false
-        },
-        "alerting": null,
-        "overview_dashboard_template_id": null,
-        "safety": {
-            "is_blocked_ivc": false,
-            "is_blocked_non_ivc": false,
-            "ignore_safety_evaluation": false
+        {
+          "test_id": "test_7301kxa0z8xce1s8yafsxf1h28q6"
         }
+      ],
+      "referenced_tests_ids": [
+        "test_1201kx3earfafg9tebhxzv3e9bwe",
+        "test_6801kx3ear77fw7a5xvh9vqs9ryv",
+        "test_7301kxa0z8xce1s8yafsxf1h28q6"
+      ]
     },
-    "tags": [],
-    "workflow": null
+    "archived": false,
+    "guardrails": {
+      "version": "1",
+      "focus": {
+        "is_enabled": true
+      },
+      "prompt_injection": {
+        "is_enabled": true
+      },
+      "content": {
+        "execution_mode": "streaming",
+        "config": {
+          "sexual": {
+            "is_enabled": false,
+            "threshold": "medium"
+          },
+          "violence": {
+            "is_enabled": false,
+            "threshold": "medium"
+          },
+          "harassment": {
+            "is_enabled": true,
+            "threshold": 0.5
+          },
+          "self_harm": {
+            "is_enabled": false,
+            "threshold": "medium"
+          },
+          "profanity": {
+            "is_enabled": true,
+            "threshold": 0.5
+          },
+          "religion_or_politics": {
+            "is_enabled": false,
+            "threshold": "medium"
+          },
+          "medical_and_legal_information": {
+            "is_enabled": false,
+            "threshold": "medium"
+          }
+        },
+        "trigger_action": {
+          "type": "end_call"
+        }
+      },
+      "moderation": null,
+      "custom": {
+        "config": {
+          "configs": [
+            {
+              "is_enabled": true,
+              "name": "Claim completeness before closing",
+              "prompt": "Block only when the agent's response ends the call, confirms the claim has been lodged, or calls end_call, WITHOUT the conversation having actually established all required claim fields. Required fields: claim type (vehicle or property), what happened, date and time of incident, vehicle registration number OR property address (matching the claim type), incident location (vehicle claims only), a contact method (email or phone), and both first and last name with spelling explicitly confirmed by the claimant. Policy number is best-effort and must NOT block closing if missing. Do not block responses that are still asking questions or asking the claimant for missing fields — only block a response that treats the claim as complete and lodged while a required field above is actually absent from the transcript.",
+              "execution_mode": "blocking",
+              "model": "gemini-2.5-flash-lite",
+              "history_message_count": 0,
+              "history_include_tool_calls": false,
+              "trigger_action": {
+                "type": "retry",
+                "feedback": "You attempted to close the call as complete, but the conversation transcript is missing: {{trigger_reason}}. Do not confirm the claim as lodged or call end_call. Ask the claimant for the specific missing field(s) first."
+              }
+            }
+          ]
+        }
+      }
+    },
+    "auto_translate_transcript_to_app_language": null,
+    "auth": {
+      "enable_auth": false,
+      "allowlist": [],
+      "require_origin_header": false
+    },
+    "call_limits": {
+      "agent_concurrency_limit": -1,
+      "daily_limit": 100000,
+      "bursting_enabled": true
+    },
+    "ban": null,
+    "smb_metadata": null,
+    "privacy": {
+      "record_voice": true,
+      "retention_days": -1,
+      "delete_transcript_and_pii": false,
+      "delete_audio": false,
+      "apply_to_existing_conversations": false,
+      "zero_retention_mode": false,
+      "conversation_history_redaction": {
+        "enabled": false,
+        "entities": []
+      }
+    },
+    "trust_context": "unknown",
+    "analysis_llm": "gemini-2.5-flash",
+    "topic_discovery": {
+      "enabled": true
+    },
+    "sentiment_analysis": {
+      "enabled": false
+    },
+    "alerting": null,
+    "overview_dashboard_template_id": null,
+    "safety": {
+      "is_blocked_ivc": false,
+      "is_blocked_non_ivc": false,
+      "ignore_safety_evaluation": false
+    }
+  },
+  "tags": [],
+  "workflow": null
 }

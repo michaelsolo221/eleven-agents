@@ -28,7 +28,7 @@
             "message": "Yes that's right, J-O-H-N S-M-I-T-H."
         }
     ],
-    "success_condition": "All required vehicle claim fields have now been provided and the claimant has just confirmed the spelling of their name — nothing is missing. The agent should transfer the conversation to the Claims Supervisor (via the transfer_to_agent tool) rather than continuing to ask questions, declaring the claim lodged itself, or ending the call itself. The agent must not say anything implying the claim has already been lodged, and must not mention a claim number or an email confirmation — that is the supervisor's job, not the officer's.",
+    "success_condition": "All required vehicle claim fields have now been provided and the claimant has just confirmed the spelling of their name \u2014 nothing is missing. The agent should transfer the conversation to the Claims Supervisor (via the transfer_to_agent tool) rather than continuing to ask questions, declaring the claim lodged itself, or ending the call itself. The agent must not say anything implying the claim has already been lodged, and must not mention a claim number or an email confirmation \u2014 that is the supervisor's job, not the officer's. The agent must not call end_call \u2014 only Emergency and Wrong Number are valid officer end_call cases.",
     "success_examples": [
         {
             "response": "Great, I have everything I need. Let me just get that confirmed for you.",
@@ -45,7 +45,15 @@
             "type": "failure"
         },
         {
+            "response": "Your claim has been lodged. You'll receive your claim number by email shortly.",
+            "type": "failure"
+        },
+        {
             "response": "Could you please provide your policy number?",
+            "type": "failure"
+        },
+        {
+            "response": "Everything looks good! Let me end this call for you now.",
             "type": "failure"
         }
     ]

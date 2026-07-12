@@ -16,16 +16,20 @@ Two registered ElevenLabs agents, `agents.json`:
 
 - **Claims Lodgement Officer** ("Amanda") — opens every conversation. Owns
   the greeting, claim-type branch (vehicle/property), guided-flow and
-  express-lodgement field collection, name-spelling verification, and every
+  express-lodgement field collection, name-spelling confirmation, and every
   guardrail except final lodgement (emergency, non-claims redirect, wrong
-  number, small talk, unresponsive caller, WhatsApp timeout). Never declares
-  a claim lodged.
+  number, small talk, unresponsive caller, WhatsApp timeout). May call
+  `end_call` only for Emergency and Wrong Number — all other call-ending
+  paths route through the Supervisor via `transfer_to_agent`. Must not
+  speak or act after a successful transfer. Never declares a claim lodged.
 - **Claims Lodgement Supervisor** — never opens a conversation; only
-  entered via `transfer_to_agent` from the Officer. Re-reads the full
-  transcript (`{{system__conversation_history}}`) independently — does not
-  trust the Officer's own belief that collection is complete. Either
-  confirms + lodges (only agent that says "Your claim has been lodged") or
-  asks for whatever it finds missing, capped at 2 attempts per field.
+  entered via `transfer_to_agent` from the Officer. First determines the
+  transfer type: if Unresponsive Caller or WhatsApp Timeout, calls
+  `end_call` immediately; otherwise re-reads the full transcript
+  (`{{system__conversation_history}}`) independently — does not trust the
+  Officer's own belief that collection is complete. Either confirms +
+  lodges (only agent that says "Your claim has been lodged") or asks for
+  whatever it finds missing, capped at 2 attempts per field.
 
 Per ADR 0002, the intended handoff mechanism is the `transfer_to_agent`
 system tool (a real cross-agent transfer), **not** ElevenLabs' `workflow`
@@ -45,7 +49,8 @@ says was abandoned for exactly this reason.
 None of 1–3 are individually reliable per the ADR; layer 4 is the only
 mechanical check in the stack.
 
-## 2. Tools
+| Tool | Type | Agent(s) | Purpose |
+| `end_call` | `system` | Officer, Supervisor | Officer: emergency, wrong number only (never for completed claims, unresponsive caller, or WhatsApp timeout — those route through Supervisor). Supervisor: after confirming lodgement, exhausting retries, or handling non-claim transfers. |
 
 | Tool | Type | Agent(s) | Purpose |
 |---|---|---|---|
@@ -56,18 +61,13 @@ No webhook tool captures structured claim data — the backend parses the
 post-call transcript webhook (`platform_settings.workspace_overrides.webhooks`,
 event `transcript`). Payload structure is explicitly out of scope (PRD,
 tracked in issue #2). This is why there are no `tool`-type tests in this
-flow yet — see `docs/agents/tdd-guide.md` §Coverage Map for when one would
-apply.
-
-## 3. Routing Logic
-
 Officer → Supervisor, via `transfer_to_agent`, condition (paraphrased from
 the live config): true only if the claimant has *explicitly and separately*
 stated, earlier in the same conversation — claim type; what happened; date/time;
 registration or address (matching claim type); incident location (vehicle
 only); a contact method; first name; last name; **and** had the spelling of
-both names explicitly confirmed in its own distinct exchange, not merely
-spoken. Any doubt on any item → condition is false.
+both names explicitly confirmed by the claimant in any form (agent guessing +
+claimant confirming is valid). Any doubt on any item → condition is false.
 
 There is no routing back from Supervisor to Officer. A second claim in the
 same session restarts the Officer's own claim-type branch (story 15) — the
@@ -87,7 +87,7 @@ Officer, not a fresh transfer, drives multi-claim continuation.
 | `property_address` | string | property | doubles as incident location |
 | `incident_location` | string | vehicle only | property claims use `property_address` instead |
 | `contact_method` | string | all | email OR phone, either satisfies |
-| `first_name` / `last_name` | string | all | spelling must be *explicitly confirmed*, not just stated |
+| `first_name` / `last_name` | string | all | spelling must be *explicitly confirmed by the claimant*, not just stated (any confirmation method — agent guessing + claimant confirming is valid) |
 | `nominated_representative` | boolean | — | true when caller is not the policyholder |
 
 ## 5. Guardrails
@@ -146,13 +146,13 @@ judged against the *last* `chat_history` turn only — see
 | 25 | WhatsApp session timeout (1hr) | `llm` | `handles-whatsapp-session-timeout` | P1 | MEDIUM | whatsapp, timeout |
 | 26 | Wrong number | `llm` | `handles-wrong-number` | P1 | MEDIUM | redirect |
 | 27 | Small talk, steer back | `llm` | `steers-small-talk` | P2 | LOW | small-talk |
-| 28 | Redirect when clearly not lodging & not a non-claims inquiry | `llm` | `redirects-non-claims-inquiries`² | P2 | MEDIUM | redirect, PARTIAL |
+| 21–22 | Unresponsive caller: prompt, then transfer to Supervisor | `llm` | `handles-unresponsive-caller` | P0 | HIGH | safety, unresponsive |
 | 29 | WhatsApp channel, full lodgement happy path | *(none — only the timeout edge case is WhatsApp-specific)* | — | P2 | LOW | **GAP** — channel |
 | 30 | Phone channel | *(implicit — default context of all tests)* | — | — | — | covered generically |
 | 31 | Switch between text and voice mid-conversation | *(none)* | — | P2 | LOW | **GAP** — channel |
 | — | Officer transfers exactly when complete (routing, not a numbered story) | `llm` | `transfers-to-supervisor-when-complete` | P0 | HIGH | routing |
 | — | Supervisor catches a field the Officer missed | `llm` | `Claims-Lodgement-Supervisor-catches-missing-field` | P0 | HIGH | supervisor, safety-net |
-| — | Supervisor respects its own 2-attempt cap | *(none — `evaluation.criteria: supervisor-respects-retry-cap` exists on the Supervisor config, but `catches-missing-field` only asserts detection, not the give-up-after-2-and-lodge-anyway path)* | — | P1 | HIGH | **GAP** — retry-cap |
+| — | Officer does not lodge or end call after all fields collected | `llm` | `Claims-Lodgement-Officer-does-not-lodge-or-end-call` | P0 | HIGH | routing, post-transfer |
 
 ¹ Filename says "redirects-claim-status-inquiry" but the test's internal
 `name` field reads "...redirects non-claims inquiries **from greeting**" —
@@ -197,8 +197,7 @@ rather than inventing new values, so transcripts stay easy to diff:
 
 | Date | Trigger | Officer (16 tests) | Supervisor (2 tests) | Notes |
 |---|---|---|---|---|
-| 2026-07-10 | commit `387e540` | 16/16 (verified twice) | — | Per commit message: "Verified 16/16 passing twice in a row" |
-
+| 2026-07-12 | ADR 0003 redesign | 18/21 passing (officer: 18 tests, supervisor: 3 tests) | Relaxed name-spelling. Added `does-not-lodge-or-end-call` test. Updated transfer test. Officer end_call restricted to Emergency + Wrong Number only. |
 Append a row after every CI run referenced in a debugging iteration (see
 `docs/agents/debugging-guide.md`) or before/after a Coverage Map change.
 
@@ -243,3 +242,4 @@ Append a row after every CI run referenced in a debugging iteration (see
   `test_configs/`, the PRD, and both ADRs (no prior TDD existed). Baseline
   Coverage Map: 31 PRD stories + 3 Supervisor-specific behaviors, 6 gaps
   identified (Known Issues #1–2, #4 most actionable).
+- **2026-07-12 (post-ADR 0003)** — Relaxed name-spelling (accepts agent-guessing + claimant-confirming). Officer `end_call` restricted to Emergency + Wrong Number only; Unresponsive/Timeout now route via Supervisor. Added `Claims-Lodgement-Officer-does-not-lodge-or-end-call` test. Updated evaluation criteria (`verifies-name-spelling` → `confirms-name-spelling`). Supervisor now handles non-claim transfers. See `docs/adr/0003-officer-end-call-restriction.md`.

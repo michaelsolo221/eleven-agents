@@ -41,7 +41,7 @@ Either an email address or a phone number — at least one required. Used for fo
 _Avoid_: Contact details, phone/email
 
 **Contact Person**:
-The point of contact for the claim — whoever we can speak to. First name and last name required. Name spelling is always verified, even in express mode. May be the policyholder or a Nominated Representative.
+The point of contact for the claim — whoever we can speak to. First name and last name required. Name spelling is always confirmed with the claimant on voice calls (any method — agent guesses or asks to spell). May be the policyholder or a Nominated Representative.
 _Avoid_: Claimant name, caller name
 
 **Nominated Representative**:
@@ -61,7 +61,7 @@ _Avoid_: Mag dump, fast mode, quick lodgement
 ## Verification & Escalation
 
 **Claims Officer**:
-The Agent that conducts intake — "Amanda". A separate registered ElevenLabs Agent, not a persona within a larger agent. Owns the greeting, Guided Flow / Express Lodgement, and every guardrail except final lodgement itself. Never declares a claim lodged and, since it never receives that instruction, should never say so.
+The Agent that conducts intake — "Amanda". A separate registered ElevenLabs Agent, not a persona within a larger agent. Owns the greeting, Guided Flow / Express Lodgement, and every guardrail except final lodgement. May call `end_call` only for Emergency redirects and Wrong Number. All other call-ending paths (Unresponsive Caller, WhatsApp Session Timeout, completed claims) route through the Claims Supervisor via `transfer_to_agent`. Must not speak or act after a successful transfer — the Supervisor continues the conversation.
 _Avoid_: The agent, the bot, the assistant
 
 **Claims Supervisor**:
@@ -69,7 +69,7 @@ A second, separate registered Agent that the Claims Officer hands the call to on
 _Avoid_: QA agent, reviewer, validator agent
 
 **Transfer**:
-The hand-off from the Claims Officer to the Claims Supervisor, via the `transfer_to_agent` mechanism — a genuine switch to a different Agent, not a change of persona within one agent. See `docs/adr/0002-claims-supervisor-as-separate-agent.md` for why this replaced an earlier same-agent workflow-node design that didn't work in practice.
+The hand-off from the Claims Officer to the Claims Supervisor, via the `transfer_to_agent` mechanism — a genuine switch to a different Agent, not a change of persona within one agent. After a successful transfer, the officer must not speak again or call any further tools. The supervisor handles all remaining interaction including lodgement confirmation and call termination. See `docs/adr/0002-claims-supervisor-as-separate-agent.md` for the original architecture decision, and `docs/adr/0003-officer-end-call-restriction.md` for the revised handoff rules.
 _Avoid_: Handoff (fine informally, but "Transfer" is the term used in config and should be used consistently in prompts/docs), escalation
 
 **Completeness Check**:
@@ -84,9 +84,9 @@ _Avoid_: Second check, double-check, QA pass
 An automatic check on every agent response, independent of both the Officer and the Supervisor, that blocks — and forces a retry of — any response which ends the call or declares the claim lodged while a required field is genuinely absent from the transcript. The last line of defense if both the officer's and the supervisor's own completeness judgment are wrong. Configured identically on both agents.
 _Avoid_: Safety check, content filter
 
-**Name Spelling Verification**:
-The agent confirms the exact spelling of the claimant's first and last name. Always performed, regardless of interaction mode.
-_Avoid_: Name confirmation, identity check
+**Name Spelling Confirmation**:
+The agent confirms the exact spelling of the claimant's first and last name with the claimant. Any confirmation method is acceptable: the agent may ask the claimant to spell their name, or the agent may guess the spelling and ask the claimant to confirm. On text-only channels (WhatsApp), no spelling confirmation is needed — the typed name is exact. Always performed on voice calls, regardless of interaction mode.
+_Avoid_: Name confirmation, identity check, name verification
 
 **Emergency Redirect**:
 Immediate termination when the claimant states they are in danger or unsafe right now. The agent says to call 000 and ends the interaction.

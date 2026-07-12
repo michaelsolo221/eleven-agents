@@ -1,104 +1,109 @@
 {
-    "tests": [
-        {
-            "config": "test_configs/Claims-Lodgement-Officer-collects-property-claim-via-guided-flow.json",
-            "id": "test_1101kws9q4g9e1q87vbvmgxxh87m",
-            "type": "llm"
-        },
-        {
-            "config": "test_configs/Claims-Lodgement-Officer-collects-vehicle-claim-via-guided-flow.json",
-            "id": "test_2001kws9q4r4f25tk7kpnbv5e0v0",
-            "type": "llm"
-        },
-        {
-            "config": "test_configs/Claims-Lodgement-Officer-handles-emergency-redirect.json",
-            "id": "test_4001kws9q4zgeqet27jjzj63tkak",
-            "type": "llm"
-        },
-        {
-            "config": "test_configs/Claims-Lodgement-Officer-handles-express-property-claim.json",
-            "id": "test_3401kx3aqfc3ekavz2tgs0z9fd3s",
-            "type": "llm"
-        },
-        {
-            "config": "test_configs/Claims-Lodgement-Officer-handles-express-vehicle-claim.json",
-            "id": "test_8401kws9q57efxpv8q22ggad7h9y",
-            "type": "llm"
-        },
-        {
-            "config": "test_configs/Claims-Lodgement-Officer-handles-missing-policy-number.json",
-            "id": "test_0101kws9q5eqehtb2eb88xpnw6xw",
-            "type": "llm"
-        },
-        {
-            "config": "test_configs/Claims-Lodgement-Officer-handles-multiple-claims.json",
-            "id": "test_9401kws9q5ppfh7t3z18vzqhjdmg",
-            "type": "llm"
-        },
-        {
-            "config": "test_configs/Claims-Lodgement-Officer-handles-nominated-representative.json",
-            "id": "test_3401kws9q5yxffh97k3a47gnw05b",
-            "type": "llm"
-        },
-        {
-            "config": "test_configs/Claims-Lodgement-Officer-handles-unresponsive-caller.json",
-            "id": "test_4201kx3aqxnkea69nvhcmzhv72jd",
-            "type": "llm"
-        },
-        {
-            "config": "test_configs/Claims-Lodgement-Officer-handles-whatsapp-session-timeout.json",
-            "id": "test_7701kx3aqxnzf32r49dkqy5a9678",
-            "type": "llm"
-        },
-        {
-            "config": "test_configs/Claims-Lodgement-Officer-handles-wrong-number.json",
-            "id": "test_4701kws9q65qfjsbfq3y6rs43trw",
-            "type": "llm"
-        },
-        {
-            "config": "test_configs/Claims-Lodgement-Officer-redirects-claim-status-inquiry.json",
-            "id": "test_9101kws9q6d0frwv8c4sk4xh6bpb",
-            "type": "llm"
-        },
-        {
-            "config": "test_configs/Claims-Lodgement-Officer-redirects-non-claims-inquiries.json",
-            "id": "test_3801kws9q6nmej4r974ptw6kzfsq",
-            "type": "llm"
-        },
-        {
-            "config": "test_configs/Claims-Lodgement-Officer-steers-small-talk.json",
-            "id": "test_6401kws9q6x4exm9ftcz0f5ckrk6",
-            "type": "llm"
-        },
-        {
-            "config": "test_configs/Claims-Lodgement-Officer-treats-past-events-as-valid-claims.json",
-            "id": "test_7301kws9q75pee2arq5hj9edfvza",
-            "type": "llm"
-        },
-        {
-            "config": "test_configs/Claims-Lodgement-Officer-transfers-to-supervisor-when-complete.json",
-            "id": "test_9501kx3eaqz6e9hr5xre4fb3mc93",
-            "type": "llm"
-        },
-        {
-            "config": "test_configs/Claims-Lodgement-Supervisor-catches-missing-field.json",
-            "id": "test_6801kx3ear77fw7a5xvh9vqs9ryv",
-            "type": "llm"
-        },
-        {
-            "config": "test_configs/Claims-Lodgement-Supervisor-confirms-when-complete.json",
-            "id": "test_1201kx3earfafg9tebhxzv3e9bwe",
-            "type": "llm"
-        },
-        {
-            "config": "test_configs/Claims-Lodgement-Officer-redirects-caller-who-declines-greeting.json",
-            "id": "test_2501kxa0z8jgfn2scpncjpb9td1c",
-            "type": "llm"
-        },
-        {
-            "config": "test_configs/Claims-Lodgement-Supervisor-ends-call-after-lodgement.json",
-            "id": "test_7301kxa0z8xce1s8yafsxf1h28q6",
-            "type": "llm"
-        }
-    ]
+  "tests": [
+    {
+      "config": "test_configs/Claims-Lodgement-Officer-collects-property-claim-via-guided-flow.json",
+      "id": "test_1101kws9q4g9e1q87vbvmgxxh87m",
+      "type": "llm"
+    },
+    {
+      "config": "test_configs/Claims-Lodgement-Officer-collects-vehicle-claim-via-guided-flow.json",
+      "id": "test_2001kws9q4r4f25tk7kpnbv5e0v0",
+      "type": "llm"
+    },
+    {
+      "config": "test_configs/Claims-Lodgement-Officer-handles-emergency-redirect.json",
+      "id": "test_4001kws9q4zgeqet27jjzj63tkak",
+      "type": "llm"
+    },
+    {
+      "config": "test_configs/Claims-Lodgement-Officer-handles-express-property-claim.json",
+      "id": "test_3401kx3aqfc3ekavz2tgs0z9fd3s",
+      "type": "llm"
+    },
+    {
+      "config": "test_configs/Claims-Lodgement-Officer-handles-express-vehicle-claim.json",
+      "id": "test_8401kws9q57efxpv8q22ggad7h9y",
+      "type": "llm"
+    },
+    {
+      "config": "test_configs/Claims-Lodgement-Officer-handles-missing-policy-number.json",
+      "id": "test_0101kws9q5eqehtb2eb88xpnw6xw",
+      "type": "llm"
+    },
+    {
+      "config": "test_configs/Claims-Lodgement-Officer-handles-multiple-claims.json",
+      "id": "test_9401kws9q5ppfh7t3z18vzqhjdmg",
+      "type": "llm"
+    },
+    {
+      "config": "test_configs/Claims-Lodgement-Officer-handles-nominated-representative.json",
+      "id": "test_3401kws9q5yxffh97k3a47gnw05b",
+      "type": "llm"
+    },
+    {
+      "config": "test_configs/Claims-Lodgement-Officer-handles-unresponsive-caller.json",
+      "id": "test_4201kx3aqxnkea69nvhcmzhv72jd",
+      "type": "llm"
+    },
+    {
+      "config": "test_configs/Claims-Lodgement-Officer-handles-whatsapp-session-timeout.json",
+      "id": "test_7701kx3aqxnzf32r49dkqy5a9678",
+      "type": "llm"
+    },
+    {
+      "config": "test_configs/Claims-Lodgement-Officer-handles-wrong-number.json",
+      "id": "test_4701kws9q65qfjsbfq3y6rs43trw",
+      "type": "llm"
+    },
+    {
+      "config": "test_configs/Claims-Lodgement-Officer-redirects-claim-status-inquiry.json",
+      "id": "test_9101kws9q6d0frwv8c4sk4xh6bpb",
+      "type": "llm"
+    },
+    {
+      "config": "test_configs/Claims-Lodgement-Officer-redirects-non-claims-inquiries.json",
+      "id": "test_3801kws9q6nmej4r974ptw6kzfsq",
+      "type": "llm"
+    },
+    {
+      "config": "test_configs/Claims-Lodgement-Officer-steers-small-talk.json",
+      "id": "test_6401kws9q6x4exm9ftcz0f5ckrk6",
+      "type": "llm"
+    },
+    {
+      "config": "test_configs/Claims-Lodgement-Officer-treats-past-events-as-valid-claims.json",
+      "id": "test_7301kws9q75pee2arq5hj9edfvza",
+      "type": "llm"
+    },
+    {
+      "config": "test_configs/Claims-Lodgement-Officer-transfers-to-supervisor-when-complete.json",
+      "id": "test_9501kx3eaqz6e9hr5xre4fb3mc93",
+      "type": "llm"
+    },
+    {
+      "config": "test_configs/Claims-Lodgement-Supervisor-catches-missing-field.json",
+      "id": "test_6801kx3ear77fw7a5xvh9vqs9ryv",
+      "type": "llm"
+    },
+    {
+      "config": "test_configs/Claims-Lodgement-Supervisor-confirms-when-complete.json",
+      "id": "test_1201kx3earfafg9tebhxzv3e9bwe",
+      "type": "llm"
+    },
+    {
+      "config": "test_configs/Claims-Lodgement-Officer-redirects-caller-who-declines-greeting.json",
+      "id": "test_2501kxa0z8jgfn2scpncjpb9td1c",
+      "type": "llm"
+    },
+    {
+      "config": "test_configs/Claims-Lodgement-Supervisor-ends-call-after-lodgement.json",
+      "id": "test_7301kxa0z8xce1s8yafsxf1h28q6",
+      "type": "llm"
+    },
+    {
+      "config": "test_configs/Claims-Lodgement-Officer-does-not-lodge-or-end-call.json",
+      "type": "llm",
+      "id": "test_6a934352b388486185b5"
+    }
+  ]
 }
