@@ -396,9 +396,16 @@
                 },
                 {
                     "test_id": "test_6801kx3ear77fw7a5xvh9vqs9ryv"
+                },
+                {
+                    "test_id": "test_8801kx3eqd7yfn6n3v5pbz8tzq66"
                 }
             ],
-            "referenced_tests_ids": []
+            "referenced_tests_ids": [
+                "test_1201kx3earfafg9tebhxzv3e9bwe",
+                "test_6801kx3ear77fw7a5xvh9vqs9ryv",
+                "test_8801kx3eqd7yfn6n3v5pbz8tzq66"
+            ]
         },
         "archived": false,
         "guardrails": {
