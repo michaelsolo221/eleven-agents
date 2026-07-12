@@ -2,13 +2,6 @@
 
 ElevenLabs conversational AI agent config repo. JSON configs in `agent_configs/`, tests in `test_configs/`.
 
-## Local Dev Tooling
-
-- ElevenLabs CLI v0.5.5 at `/opt/homebrew/bin/elevenlabs`. `ELEVENLABS_API_KEY` is set in the environment.
-- **Pre-push**: `make validate` (structural checks) then `make dry-run` (preview changes).
-- **Full CI can be run locally**: `make push` (deploy), `python3 scripts/verify-live-tools.py` (integrity), `make test` (18 LLM agent tests).
-- **Key Makefile targets**: `validate`, `dry-run`, `push`, `test`, `pull`, `list`. Run `make help` for the full list.
-
 ## Test Schema
 
 ElevenLabs CLI test format — NOT generic JSON:
@@ -30,22 +23,13 @@ Common mistakes:
 - `failure_example` wrong field name. Use `failure_examples` (array).
 - Scenario tests evaluate ONE response to the LAST chat_history message only. Agent greets first in fresh conversation. For mid-flow tests, include prior turns in chat_history so agent is already in conversation.
 
-## TDD (Technical Design Document)
-
-Each flow's living spec lives at `docs/agents/<flow>.tdd.md` — architecture,
-tools, routing, guardrails, and a Coverage Map linking PRD stories to
-`test_configs/*.json` with priority/severity/gaps. See
-`docs/agents/tdd-guide.md` for the methodology and
-`docs/agents/claims-lodgement.tdd.md` for the worked example. Update the
-Coverage Map before adding/removing tests; update Architecture/Tools/Routing
-before merging an `agent_configs/*.json` change that alters behavior.
-
 ## Agent Config
 
 - New agents: use `elevenlabs agents add "Name" --from-file config.json --no-ui` to create on ElevenLabs and get real ID. Don't put placeholder IDs in `agents.json`.
 - `platform_settings.testing.attached_tests` must reference test IDs from `tests.json`. Format: `[{"test_id": "test_xxx"}]`.
 - `conversation_config_overrides.text_only` in platform settings: set `false` for voice agents.
-- Warnings about non-persisted fields (custom_llm, shareable_token, widget colors, webhook IDs) are harmless. All agents get them.
+- Warnings about non-persisted fields (custom_llm, shareable_token, widget colors) are harmless. All agents get them.
+- `post_call_webhook_id` is NOT in that category — the CLI can silently drop it on push (ADR 0002). Always run `python3 scripts/verify-live-tools.py` after pushing an agent that sets one.
 
 ## CLI Commands
 
@@ -69,24 +53,10 @@ When delegating implementation:
 - Sub-agents need the ElevenLabs test schema above. Don't assume they know it.
 
 ## Debugging Failing Tests
-
-Full methodology: `docs/agents/debugging-guide.md`. Log every fix attempt
-(worked or not) in `experiment_log.md` — prevents ping-ponging fixes between
-the Officer and Supervisor.
-
 1. Use ElevenLabs API directly to simulate conversation and see agent's actual response:
    ```bash
    # POST https://api.elevenlabs.io/v1/convai/agents/{agent_id}/simulate
    # API key stored at ~/.elevenlabs/api_key
    ```
 2. Don't guess at success_condition wording. Simulate first, then calibrate.
-3. Probabilistic: LLM evaluator has variance. Run tests 3x; only act on a
-   test that fails ≥2/3 runs.
-4. **Fix order** (earlier categories cascade-fix later ones — see full guide
-   for detail): eval-config error → platform error → missing/wrong tool call
-   (esp. `transfer_to_agent`) → wrong params → expectation fail →
-   hallucination → cross-agent contradiction → text/tone.
-5. **Cross-agent regression check is mandatory**: any instruction change to
-   either agent must be re-validated against BOTH agents' full test suites
-   before calling a fix done — the Officer/Supervisor handoff means a fix on
-   one side can silently break the other.
+3. Probabilistic: LLM evaluator has variance. Run tests 2-3 times before declaring failure.
