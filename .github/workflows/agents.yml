@@ -19,6 +19,33 @@ jobs:
       - name: Validate configs
         run: python3 scripts/validate-configs.py
 
+  pr-test:
+    name: Test PR branch
+    needs: validate
+    if: github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+
+      - name: Install ElevenLabs CLI
+        run: npm install -g @elevenlabs/cli
+
+      - name: Authenticate
+        run: echo "$ELEVENLABS_API_KEY" | elevenlabs auth login
+
+      - name: Push to PR branch
+        run: elevenlabs agents push --branch "pr-${{ github.event.pull_request.number }}"
+
+      - name: Verify live tools match config
+        run: python3 scripts/verify-live-tools.py --branch-name "pr-${{ github.event.pull_request.number }}"
+
+      - name: Run tests
+        run: python3 scripts/test-pr-branch.py --branch-name "pr-${{ github.event.pull_request.number }}"
+
   push:
     name: Push agents
     needs: validate

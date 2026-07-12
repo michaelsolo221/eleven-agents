@@ -1,0 +1,19 @@
+name: PR Branch Cleanup
+
+on:
+  pull_request:
+    types: [closed]
+    branches: [main]
+
+env:
+  ELEVENLABS_API_KEY: ${{ secrets.ELEVENLABS_API_KEY }}
+
+jobs:
+  cleanup:
+    name: Archive PR branches
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Archive PR branches
+        run: python3 scripts/archive-pr-branches.py --branch-name "pr-${{ github.event.pull_request.number }}"
