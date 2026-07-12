@@ -43,30 +43,36 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
-          for entry in $(jq -c '.agents[]' agents.json); do
+          while read -r entry; do
             agent_id=$(echo "$entry" | jq -r '.id')
+            version_id=$(echo "$entry" | jq -r '.version_id')
             branch_name="pr-${PR_NUMBER}"
             # Check if branch already exists
             existing=$(curl -s \
               "https://api.elevenlabs.io/v1/convai/agents/$agent_id/branches" \
               -H "xi-api-key: $ELEVENLABS_API_KEY")
-            if echo "$existing" | jq -e --arg name "$branch_name" '.items[]? | select(.name == $name)' > /dev/null 2>&1; then
+            if echo "$existing" | jq -e --arg name "$branch_name" '.items[]? | select(.name == $name)' > /dev/null 2>/dev/null; then
               echo "Branch $branch_name already exists for $agent_id"
               continue
             fi
             echo "Creating branch $branch_name for agent $agent_id..."
+            create_body=$(jq -n \
+              --arg pvid "$version_id" \
+              --arg name "$branch_name" \
+              --arg desc "PR #${PR_NUMBER} test branch" \
+              '{parent_version_id: $pvid, name: $name, description: $desc}')
             http_code=$(curl -s -o /dev/null -w '%{http_code}' \
               -X POST "https://api.elevenlabs.io/v1/convai/agents/$agent_id/branches" \
               -H "xi-api-key: $ELEVENLABS_API_KEY" \
               -H "Content-Type: application/json" \
-              -d "{\"parent_version_id\": \"$(echo \"$entry\" | jq -r '.version_id')\", \"name\": \"$branch_name\", \"description\": \"PR #${PR_NUMBER} test branch\"}")
+              -d "$create_body")
             if [ "$http_code" = "200" ]; then
               echo "  Branch $branch_name created"
             else
               echo "::error::Failed to create branch $branch_name (HTTP $http_code)"
               exit 1
             fi
-          done
+          done < <(jq -c '.agents[]' agents.json)
 
       - name: Push to PR branch
         run: |
