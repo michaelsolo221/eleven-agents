@@ -2,6 +2,13 @@
 
 ElevenLabs conversational AI agent config repo. JSON configs in `agent_configs/`, tests in `test_configs/`.
 
+## Local Dev Tooling
+
+- ElevenLabs CLI v0.5.5 at `/opt/homebrew/bin/elevenlabs`. `ELEVENLABS_API_KEY` is set in the environment.
+- **Pre-push**: `make validate` (structural checks) then `make dry-run` (preview changes).
+- **Full CI can be run locally**: `make push` (deploy), `python3 scripts/verify-live-tools.py` (integrity), `make test` (18 LLM agent tests).
+- **Key Makefile targets**: `validate`, `dry-run`, `push`, `test`, `pull`, `list`. Run `make help` for the full list.
+
 ## Test Schema
 
 ElevenLabs CLI test format — NOT generic JSON:
@@ -22,6 +29,16 @@ Common mistakes:
 - `success_example` wrong field name. Use `success_examples` (array of objects with `response` + `type`).
 - `failure_example` wrong field name. Use `failure_examples` (array).
 - Scenario tests evaluate ONE response to the LAST chat_history message only. Agent greets first in fresh conversation. For mid-flow tests, include prior turns in chat_history so agent is already in conversation.
+
+## TDD (Technical Design Document)
+
+Each flow's living spec lives at `docs/agents/<flow>.tdd.md` — architecture,
+tools, routing, guardrails, and a Coverage Map linking PRD stories to
+`test_configs/*.json` with priority/severity/gaps. See
+`docs/agents/tdd-guide.md` for the methodology and
+`docs/agents/claims-lodgement.tdd.md` for the worked example. Update the
+Coverage Map before adding/removing tests; update Architecture/Tools/Routing
+before merging an `agent_configs/*.json` change that alters behavior.
 
 ## Agent Config
 
@@ -53,10 +70,24 @@ When delegating implementation:
 - Sub-agents need the ElevenLabs test schema above. Don't assume they know it.
 
 ## Debugging Failing Tests
+
+Full methodology: `docs/agents/debugging-guide.md`. Log every fix attempt
+(worked or not) in `experiment_log.md` — prevents ping-ponging fixes between
+the Officer and Supervisor.
+
 1. Use ElevenLabs API directly to simulate conversation and see agent's actual response:
    ```bash
    # POST https://api.elevenlabs.io/v1/convai/agents/{agent_id}/simulate
    # API key stored at ~/.elevenlabs/api_key
    ```
 2. Don't guess at success_condition wording. Simulate first, then calibrate.
-3. Probabilistic: LLM evaluator has variance. Run tests 2-3 times before declaring failure.
+3. Probabilistic: LLM evaluator has variance. Run tests 3x; only act on a
+   test that fails ≥2/3 runs.
+4. **Fix order** (earlier categories cascade-fix later ones — see full guide
+   for detail): eval-config error → platform error → missing/wrong tool call
+   (esp. `transfer_to_agent`) → wrong params → expectation fail →
+   hallucination → cross-agent contradiction → text/tone.
+5. **Cross-agent regression check is mandatory**: any instruction change to
+   either agent must be re-validated against BOTH agents' full test suites
+   before calling a fix done — the Officer/Supervisor handoff means a fix on
+   one side can silently break the other.
