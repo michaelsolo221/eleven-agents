@@ -38,7 +38,11 @@ jobs:
         run: echo "$ELEVENLABS_API_KEY" | elevenlabs auth login
 
       - name: Push to PR branch
-        run: elevenlabs agents push --branch "pr-${{ github.event.pull_request.number }}"
+        run: |
+          for agent_name in $(jq -r '.agents[].config' agents.json | sed 's|agent_configs/||;s|\.json$||'); do
+            echo "Pushing $agent_name to pr-${{ github.event.pull_request.number }}..."
+            elevenlabs agents push --agent "$agent_name" --branch "pr-${{ github.event.pull_request.number }}"
+          done
 
       - name: Verify live tools match config
         run: python3 scripts/verify-live-tools.py --branch-name "pr-${{ github.event.pull_request.number }}"
