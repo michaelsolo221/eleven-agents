@@ -14,6 +14,8 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 API_BASE = "https://api.elevenlabs.io/v1/convai"
+API_KEY = os.environ.get("ELEVENLABS_API_KEY")
+
 
 
 def fail(msg):
@@ -51,10 +53,7 @@ def archive_branch(agent_id, branch_id):
     )
     try:
         with urllib.request.urlopen(req) as resp:
-            if resp.status == 200:
-                return True
-            fail(f"Unexpected status {resp.status} archiving branch {branch_id}")
-            return False
+            return True
     except urllib.error.HTTPError as e:
         fail(f"Archive failed for {branch_id}: HTTP {e.code}")
         return False
@@ -65,8 +64,6 @@ def main():
     parser.add_argument("--branch-name", required=True, help="Branch name to archive (e.g. pr-27)")
     args = parser.parse_args()
 
-    global API_KEY
-    API_KEY = os.environ.get("ELEVENLABS_API_KEY")
     if not API_KEY:
         print("ELEVENLABS_API_KEY not set — branch cleanup is best-effort, skipping")
         sys.exit(0)

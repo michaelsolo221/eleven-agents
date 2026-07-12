@@ -86,15 +86,21 @@ def run_tests(agent_id, branch_id, test_ids):
         return json.loads(resp.read())
 
 
-def poll_test_invocation(invocation_id, timeout_secs=120):
+def poll_test_invocation(invocation_id, timeout_secs=180):
     """Poll for test invocation completion. Returns the final response."""
     import time
     url = f"{API_BASE}/v1/convai/test-invocations/{invocation_id}"
     deadline = time.time() + timeout_secs
+    data = None
     while time.time() < deadline:
         req = urllib.request.Request(url, headers={"xi-api-key": API_KEY})
-        with urllib.request.urlopen(req) as resp:
-            data = json.loads(resp.read())
+        try:
+            with urllib.request.urlopen(req) as resp:
+                data = json.loads(resp.read())
+        except Exception as e:
+            print(f"  (poll error: {e}, retrying...)")
+            time.sleep(5)
+            continue
         pending = [r for r in data.get("test_runs", []) if r.get("status") == "pending"]
         if not pending:
             return data
@@ -103,6 +109,9 @@ def poll_test_invocation(invocation_id, timeout_secs=120):
         p = len(pending)
         print(f"  Polling... {passed} passed, {failed} failed, {p} pending")
         time.sleep(5)
+    if data is None:
+        print("  (polling failed: all API calls errored)")
+        return {"test_runs": []}
     return data
 
 

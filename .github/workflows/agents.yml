@@ -24,6 +24,7 @@ jobs:
     needs: validate
     if: github.event_name == 'pull_request'
     runs-on: ubuntu-latest
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@v4
 
@@ -41,17 +42,26 @@ jobs:
         env:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
+          set -euo pipefail
           for entry in $(jq -c '.agents[]' agents.json); do
             agent_id=$(echo "$entry" | jq -r '.id')
             branch_name="pr-${PR_NUMBER}"
+            # Check if branch already exists
+            existing=$(curl -s \
+              "https://api.elevenlabs.io/v1/convai/agents/$agent_id/branches" \
+              -H "xi-api-key: $ELEVENLABS_API_KEY")
+            if echo "$existing" | jq -e --arg name "$branch_name" '.items[]? | select(.name == $name)' > /dev/null 2>&1; then
+              echo "Branch $branch_name already exists for $agent_id"
+              continue
+            fi
             echo "Creating branch $branch_name for agent $agent_id..."
             http_code=$(curl -s -o /dev/null -w '%{http_code}' \
               -X POST "https://api.elevenlabs.io/v1/convai/agents/$agent_id/branches" \
               -H "xi-api-key: $ELEVENLABS_API_KEY" \
               -H "Content-Type: application/json" \
-              -d "{\"parent_version_id\": \"$(echo "$entry" | jq -r '.version_id')\", \"name\": \"$branch_name\", \"description\": \"PR #${PR_NUMBER} test branch\"}")
-            if [ "$http_code" = "200" ] || [ "$http_code" = "422" ] || [ "$http_code" = "400" ]; then
-              echo "  Branch $branch_name ready (HTTP $http_code)"
+              -d "{\"parent_version_id\": \"$(echo \"$entry\" | jq -r '.version_id')\", \"name\": \"$branch_name\", \"description\": \"PR #${PR_NUMBER} test branch\"}")
+            if [ "$http_code" = "200" ]; then
+              echo "  Branch $branch_name created"
             else
               echo "::error::Failed to create branch $branch_name (HTTP $http_code)"
               exit 1
@@ -60,6 +70,7 @@ jobs:
 
       - name: Push to PR branch
         run: |
+          set -euo pipefail
           for agent_id in $(jq -r '.agents[].id' agents.json); do
             echo "Pushing $agent_id to pr-${{ github.event.pull_request.number }}..."
             elevenlabs agents push --agent "$agent_id" --branch "pr-${{ github.event.pull_request.number }}"

@@ -11,6 +11,7 @@ serialization, not the API. Until that's fixed upstream, this script closes
 the gap: it re-fetches each agent from the live API after push and fails loudly
 if a locally-declared tool didn't make it across.
 """
+import argparse
 import json
 import os
 import sys
@@ -40,17 +41,19 @@ def fetch_live_agent(agent_id):
         return json.loads(resp.read())
 
 
-
 def find_branch_id(agent_id, branch_name):
     url = f"https://api.elevenlabs.io/v1/convai/agents/{agent_id}/branches"
     req = urllib.request.Request(url, headers={"xi-api-key": API_KEY})
-    with urllib.request.urlopen(req) as resp:
-        data = json.loads(resp.read())
+    try:
+        with urllib.request.urlopen(req) as resp:
+            data = json.loads(resp.read())
+    except Exception as e:
+        print(f"  (error listing branches for {agent_id}: {e})")
+        return None
     for key in ("branches", "items", "results"):
         for branch in data.get(key, []):
             if branch.get("name") == branch_name:
                 return branch["id"]
-    print(f"  (debug) response keys: {sorted(data.keys())}, sample: {json.dumps(data)[:200]}")
     return None
 
 def local_tool_names(config):
@@ -81,7 +84,6 @@ if not API_KEY:
     sys.exit(0)
 
 agents_data = json.loads((ROOT / "agents.json").read_text())
-import argparse
 parser = argparse.ArgumentParser(description=__doc__)
 parser.add_argument("--branch-name", help="Check a specific branch instead of the default live agent")
 args = parser.parse_args()
