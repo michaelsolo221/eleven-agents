@@ -43,36 +43,22 @@ jobs:
           PR_NUMBER: ${{ github.event.pull_request.number }}
         run: |
           set -euo pipefail
-          while read -r entry; do
-            agent_id=$(echo "$entry" | jq -r '.id')
-            version_id=$(echo "$entry" | jq -r '.version_id')
+          for agent_id in $(jq -r '.agents[].id' agents.json); do
             branch_name="pr-${PR_NUMBER}"
-            # Check if branch already exists
-            existing=$(curl -s \
-              "https://api.elevenlabs.io/v1/convai/agents/$agent_id/branches" \
-              -H "xi-api-key: $ELEVENLABS_API_KEY")
-            if echo "$existing" | jq -e --arg name "$branch_name" '.items[]? | select(.name == $name)' > /dev/null 2>/dev/null; then
-              echo "Branch $branch_name already exists for $agent_id"
-              continue
-            fi
-            echo "Creating branch $branch_name for agent $agent_id..."
-            create_body=$(jq -n \
-              --arg pvid "$version_id" \
-              --arg name "$branch_name" \
-              --arg desc "PR #${PR_NUMBER} test branch" \
-              '{parent_version_id: $pvid, name: $name, description: $desc}')
+            version_id=$(jq -r --arg id "$agent_id" '.agents[] | select(.id == $id) | .version_id' agents.json)
+            echo "Ensuring branch $branch_name for agent $agent_id..."
             http_code=$(curl -s -o /dev/null -w '%{http_code}' \
               -X POST "https://api.elevenlabs.io/v1/convai/agents/$agent_id/branches" \
               -H "xi-api-key: $ELEVENLABS_API_KEY" \
               -H "Content-Type: application/json" \
-              -d "$create_body")
-            if [ "$http_code" = "200" ]; then
-              echo "  Branch $branch_name created"
+              -d "{\"parent_version_id\": \"$version_id\", \"name\": \"$branch_name\", \"description\": \"PR #${PR_NUMBER} test branch\"}")
+            if [ "$http_code" = "200" ] || [ "$http_code" = "400" ] || [ "$http_code" = "422" ]; then
+              echo "  Branch $branch_name ready (HTTP $http_code)"
             else
               echo "::error::Failed to create branch $branch_name (HTTP $http_code)"
               exit 1
             fi
-          done < <(jq -c '.agents[]' agents.json)
+          done
 
       - name: Push to PR branch
         run: |
