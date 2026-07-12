@@ -33,16 +33,29 @@ Common mistakes:
 
 ## CLI Commands
 
+CLI is assumed installed (`elevenlabs --version`; if missing, `make install`). Use it over manual API calls or hand-written IDs — it's the source of truth for what's actually live.
+
 - `elevenlabs tests push --config-dir test_configs` — push all test configs from directory
 - `elevenlabs agents test <agent_id> --no-ui` — run tests for specific agent (no `--all` flag)
 - `elevenlabs tests delete --all --no-ui` — clean slate for tests
 - `elevenlabs agents push --dry-run` — preview changes
 
+### New/edited test workflow (required order)
+
+Adding a test config file is not enough — it must be pushed and attached, or it silently never runs (see #29 and its repeat in PR #35):
+
+1. Write the test config in `test_configs/`.
+2. `elevenlabs tests push --config-dir test_configs` — get the real `test_id` back. Never hand-write a `test_xxx` ID into `tests.json`.
+3. Add that real ID to the target agent's `platform_settings.testing.attached_tests` in `agent_configs/*.json`.
+4. `elevenlabs agents push` the agent config.
+5. `python3 scripts/verify-live-tools.py` — confirms attached tests and `post_call_webhook_id` match what's live.
+
 ## CI
 
-- `validate` job checks `agent_configs/*.json` only. Add `test_configs/*.json` schema validation.
-- `test-pr` job runs on PRs: dry-run push + test all agents.
-- `push` and `test` jobs run on main only.
+Defined in `.github/workflows/agents.yml`. Three jobs, no `test-pr` job exists:
+
+- `validate` — runs on every push and PR. Runs `scripts/validate-configs.py`, which checks `agent_configs/*.json`, `tests.json`, `test_configs/*.json`, orphaned files, and that `attached_tests` cross-references `tests.json`.
+- `push` and `test` — main only (`if: github.ref == 'refs/heads/main' && github.event_name == 'push'`). PRs get `validate` only — no dry-run push or test run happens pre-merge, so live platform state (attached tests, tools, webhook) can't be confirmed until after merge. Re-run `python3 scripts/verify-live-tools.py` manually post-merge if a PR touched tests, tools, or the webhook.
 
 ## Sub-Agent Coordination
 
