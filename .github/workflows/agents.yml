@@ -39,7 +39,8 @@ jobs:
 
       - name: Push to PR branch
         run: |
-          for agent_name in $(jq -r '.agents[].config' agents.json | sed 's|agent_configs/||;s|\.json$||'); do
+          for config in $(jq -r '.agents[].config' agents.json); do
+            agent_name=$(jq -r '.name' "$config")
             echo "Pushing $agent_name to pr-${{ github.event.pull_request.number }}..."
             elevenlabs agents push --agent "$agent_name" --branch "pr-${{ github.event.pull_request.number }}"
           done
