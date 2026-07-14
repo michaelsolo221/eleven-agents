@@ -16,21 +16,16 @@
  * 4. ElevenLabs Dashboard → Agent → Post-call webhook → paste URL
  */
 
-var WEBHOOK_SECRET = ""; // 👈 SET THIS to your ElevenLabs webhook signing secret
+// HMAC verification is NOT supported in Google Apps Script because ElevenLabs
+// sends the signature as an HTTP header, which Apps Script cannot access in
+// a standard Web App deployment. Security relies on the URL being unguessable.
+// If the URL leaks, redeploy to get a new URL.
+var _unused = "";
 
 function doPost(e) {
   try {
-    // --- HMAC signature verification ---
-    if (WEBHOOK_SECRET) {
-      var sigHeader = e.parameter.sig || "";
-      var computed = Utilities.computeHmacSha256Signature(e.postData.contents, WEBHOOK_SECRET);
-      var computedHex = computed.map(function(b) { return ("0" + (b & 0xFF).toString(16)).slice(-2); }).join("");
-      if (sigHeader !== computedHex) {
-        return error("Invalid signature");
-      }
-    }
-
     var payload = JSON.parse(e.postData.contents);
+
     // Only process post_call_transcription events
     if (payload.type !== "post_call_transcription") {
       return ok({ skipped: true, type: payload.type });
