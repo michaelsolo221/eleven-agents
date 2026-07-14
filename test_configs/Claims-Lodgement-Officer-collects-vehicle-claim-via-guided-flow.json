@@ -25,10 +25,10 @@
   ],
   "success_condition": "The agent is mid-flow collecting a vehicle claim. The last user message provides the contact details and name. The agent should acknowledge the name and email, confirm the name spelling, confirm the claim is progressing, or transfer to the Claims Supervisor via transfer_to_agent (the supervisor will re-verify completeness and ask for anything genuinely missing before lodging). The agent should NOT restart with the greeting or ignore the information provided.",
   "success_examples": [
-    {
-      "response": "Thank you, Sarah. Let me confirm \u2014 is that S-A-R-A-H and C-H-E-N? Great, I have all your details. I've lodged your claim. Expect an email within 1 business day.",
-      "type": "success"
-    },
+        {
+            "response": "Thank you, Sarah. Let me confirm — is that S-A-R-A-H and C-H-E-N? Great, I have all your details. Let me transfer you now.",
+            "type": "success"
+        },
     {
       "response": "Thanks Sarah. I've got your email and name. Let me just confirm the spelling of your name \u2014 is that S-A-R-A-H, C-H-E-N?",
       "type": "success"

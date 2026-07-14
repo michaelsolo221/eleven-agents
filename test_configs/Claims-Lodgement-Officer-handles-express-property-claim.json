@@ -11,7 +11,7 @@
     "success_condition": "The user has dumped all property claim info in one message (express lodgement), including a name whose spelling has not yet been explicitly confirmed. The agent should acknowledge the information provided and either ask for name spelling verification, confirm the claim is being lodged, or transfer to the Claims Supervisor via transfer_to_agent (the supervisor independently checks for unconfirmed name spelling and will ask for it before lodging if the officer transferred early). The agent should NOT ask for information that was already provided, and should NOT restart with the greeting. The property address serves as both the risk asset and incident location.",
     "success_examples": [
         {
-            "response": "Thank you, Rachel. Let me confirm the spelling — is that R-A-C-H-E-L, K-I-M? I've got all your details for the property at 15 Smith Street, Melbourne. I've lodged your claim. Expect an email within 1 business day.",
+            "response": "Thank you, Rachel. Let me confirm the spelling — is that R-A-C-H-E-L, K-I-M? I have all your details for the property at 15 Smith Street, Melbourne. Let me get this confirmed for you.",
             "type": "success"
         },
         {
