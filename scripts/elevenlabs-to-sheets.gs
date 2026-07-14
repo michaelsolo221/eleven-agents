@@ -4,24 +4,33 @@
  * Receives ElevenLabs post_call_transcription events and appends one row
  * per conversation to the active sheet.
  *
+ * SECURITY: Set WEBHOOK_SECRET below to your ElevenLabs webhook signing
+ * secret (Agent → Settings → Post-call webhook → Signing secret).
+ * This prevents anyone without the secret from posting to this endpoint.
+ *
  * DEPLOYMENT:
- * 1. Open your Google Sheet
- * 2. Extensions → Apps Script
- * 3. Paste this entire file
- * 4. Deploy → New deployment → Web App
- *    - Execute as: Me
- *    - Who has access: Anyone
- * 5. Copy the Web App URL
- * 6. ElevenLabs Dashboard → your agent → Post-call webhook → paste URL
+ * 1. Open your Google Sheet → Extensions → Apps Script → paste this file
+ * 2. Deploy → New deployment → Web App
+ *    - Execute as: Me, Who has access: Anyone
+ * 3. Copy the Web App URL
+ * 4. ElevenLabs Dashboard → Agent → Post-call webhook → paste URL
  */
 
-// Optional: set this to match your ElevenLabs webhook secret for HMAC validation
-var WEBHOOK_SECRET = ""; // leave empty to skip validation
+var WEBHOOK_SECRET = ""; // 👈 SET THIS to your ElevenLabs webhook signing secret
 
 function doPost(e) {
   try {
-    var payload = JSON.parse(e.postData.contents);
+    // --- HMAC signature verification ---
+    if (WEBHOOK_SECRET) {
+      var sigHeader = e.parameter.sig || "";
+      var computed = Utilities.computeHmacSha256Signature(e.postData.contents, WEBHOOK_SECRET);
+      var computedHex = computed.map(function(b) { return ("0" + (b & 0xFF).toString(16)).slice(-2); }).join("");
+      if (sigHeader !== computedHex) {
+        return error("Invalid signature");
+      }
+    }
 
+    var payload = JSON.parse(e.postData.contents);
     // Only process post_call_transcription events
     if (payload.type !== "post_call_transcription") {
       return ok({ skipped: true, type: payload.type });
