@@ -179,7 +179,8 @@
                   "condition": "ONLY true if the claimant has, earlier in THIS exact conversation, explicitly and separately stated every single one of these — treat any doubt as false: (1) claim type; (2) what happened; (3) date and time of incident; (4) vehicle registration number, or property address if a property claim; (5) incident location, for vehicle claims only; (6) a contact method, email or phone; (7) first name; (8) last name; (9) the claimant has explicitly confirmed the spelling of both first and last name in any form — the agent may ask the claimant to spell it, or the agent may guess and the claimant confirms. A name being spoken is NOT the same as its spelling being confirmed; this must be a separate, distinct exchange. If the claimant has not yet been asked to confirm spelling, or has not yet confirmed it, this condition is false regardless of anything else. False if any item is missing, ambiguous, or merely implied.",
                   "delay_ms": 0,
                   "transfer_message": null,
-                  "enable_transferred_agent_first_message": true
+                  "enable_transferred_agent_first_message": true,
+                  "is_workflow_node_transfer": false
                 }
               ]
             }
