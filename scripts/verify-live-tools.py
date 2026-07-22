@@ -76,6 +76,18 @@ def live_webhook_id(agent):
     return agent.get("platform_settings", {}).get("workspace_overrides", {}).get("webhooks", {}).get("post_call_webhook_id")
 
 
+def transfer_conditions(config):
+    """Map transfer target agent_id -> condition text, for every transfer_to_agent tool."""
+    prompt = config.get("conversation_config", {}).get("agent", {}).get("prompt", {})
+    conditions = {}
+    for tool in prompt.get("tools", []):
+        if tool.get("params", {}).get("system_tool_type") != "transfer_to_agent":
+            continue
+        for transfer in tool["params"].get("transfers", []):
+            conditions[transfer.get("agent_id")] = transfer.get("condition")
+    return conditions
+
+
 def attached_test_ids(config):
     tests = config.get("platform_settings", {}).get("testing", {}).get("attached_tests", [])
     return {t["test_id"] for t in tests if "test_id" in t}
@@ -95,6 +107,7 @@ for entry in agents_data.get("agents", []):
     expected_tools = local_tool_names(local)
     expected_webhook = local_webhook_id(local)
     expected_tests = attached_test_ids(local)
+    expected_conditions = transfer_conditions(local)
     if not expected_tools and not expected_webhook and not expected_tests:
         ok(f"{entry['config']}: no tools, webhook, or attached tests declared, nothing to verify")
         continue
@@ -151,6 +164,22 @@ for entry in agents_data.get("agents", []):
             )
         else:
             ok(f"{entry['config']}: all {len(expected_tests)} attached test(s) present live")
+    if expected_conditions:
+        live_conditions = transfer_conditions(live)
+        mismatched = {
+            aid: cond for aid, cond in expected_conditions.items()
+            if live_conditions.get(aid) != cond
+        }
+        if mismatched:
+            target = f"branch {args.branch_name}" if args.branch_name else f"live agent {entry['id']}"
+            fail(
+                f"{entry['config']}: transfer_to_agent condition for target(s) "
+                f"{sorted(mismatched)} does not match {target} — the CLI can silently "
+                f"drop or stale this nested field on push even when the tool itself is "
+                f"present (see 2026-07-22 incident). Patch the API directly to fix."
+            )
+        else:
+            ok(f"{entry['config']}: all {len(expected_conditions)} transfer_to_agent condition(s) match live")
 
 print(f"\n{'='*40}")
 if errors:

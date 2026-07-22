@@ -176,7 +176,7 @@
               "transfers": [
                 {
                   "agent_id": "agent_8101kx3drtdwfmqtv6085k716gsz",
-                  "condition": "ONLY true if the claimant has, earlier in THIS exact conversation, explicitly and separately stated every single one of these — treat any doubt as false: (1) claim type; (2) what happened; (3) date and time of incident; (4) vehicle registration number, or property address if a property claim; (5) incident location, for vehicle claims only; (6) a contact method, email or phone; (7) first name; (8) last name; (9) the claimant has explicitly confirmed the spelling of both first and last name in any form — the agent may ask the claimant to spell it, or the agent may guess and the claimant confirms. A name being spoken is NOT the same as its spelling being confirmed; this must be a separate, distinct exchange. If the claimant has not yet been asked to confirm spelling, or has not yet confirmed it, this condition is false regardless of anything else. False if any item is missing, ambiguous, or merely implied.",
+                  "condition": "ONLY true if the claimant has, earlier in THIS exact conversation, explicitly and separately stated every single one of these — treat any doubt as false: (1) claim type; (2) what happened; (3) date and time of incident; (4) vehicle registration number, or property address if a property claim; (5) incident location, for vehicle claims only; (6) a contact method, email or phone; (7) first name; (8) last name; (9) name spelling — on a VOICE call: the claimant has explicitly confirmed the spelling of both first and last name in any form (the agent may ask the claimant to spell it, or the agent may guess and the claimant confirms; a name being spoken is NOT the same as its spelling being confirmed, this must be a separate, distinct exchange; if not yet asked or not yet confirmed, this condition is false). On a TEXT-ONLY conversation (e.g. WhatsApp, where the claimant's messages are typed text visible verbatim in the transcript), item (9) is satisfied as soon as first and last name have been stated in text — no separate spelling confirmation exchange is required or expected. False if any item is missing, ambiguous, or merely implied.",
                   "delay_ms": 0,
                   "transfer_message": null,
                   "enable_transferred_agent_first_message": true,
@@ -213,10 +213,10 @@
           "max_score": 100
         },
         {
-          "id": "verifies-name-spelling",
-          "name": "Verifies name spelling",
+          "id": "confirms-name-spelling",
+          "name": "Confirms name spelling",
           "type": "prompt",
-          "conversation_goal_prompt": "The agent explicitly confirms the spelling of the claimant's first name and last name. This occurs regardless of whether the interaction is guided flow or express lodgement.",
+          "conversation_goal_prompt": "On voice calls, the agent explicitly confirms the spelling of the claimant's first name and last name (this occurs regardless of whether the interaction is guided flow or express lodgement). On text-only conversations (e.g. WhatsApp), the agent does NOT ask for spelling confirmation — the typed name is exact, and asking anyway is a failure of this criterion, not a pass.",
           "use_knowledge_base": false,
           "scope": "conversation",
           "scoring_mode": "binary",
@@ -549,7 +549,7 @@
             {
               "is_enabled": true,
               "name": "Claim completeness before closing",
-              "prompt": "Block only when the agent's response ends the call, confirms the claim has been lodged, or calls end_call, WITHOUT the conversation having actually established all required claim fields. Required fields: claim type (vehicle or property), what happened, date and time of incident, vehicle registration number OR property address (matching the claim type), incident location (vehicle claims only), a contact method (email or phone), and both first and last name with spelling explicitly confirmed by the claimant. Policy number is best-effort and must NOT block closing if missing. Do not block responses that are still asking questions, still mid-flow (guided or express), or that are asking the claimant for missing fields — only block a response that treats the claim as complete and lodged while a required field above is actually absent from the transcript.",
+              "prompt": "Block only when the agent's response ends the call, confirms the claim has been lodged, or calls end_call, WITHOUT the conversation having actually established all required claim fields. Required fields: claim type (vehicle or property), what happened, date and time of incident, vehicle registration number OR property address (matching the claim type), incident location (vehicle claims only), a contact method (email or phone), and both first and last name — on a voice call, with spelling explicitly confirmed by the claimant; on a text-only conversation (e.g. WhatsApp, where the claimant's messages are typed text visible verbatim in the transcript), the typed name is exact and spelling confirmation is NOT required. Policy number is best-effort and must NOT block closing if missing. Do not block responses that are still asking questions, still mid-flow (guided or express), or that are asking the claimant for missing fields — only block a response that treats the claim as complete and lodged while a required field above is actually absent from the transcript.",
               "execution_mode": "blocking",
               "model": "gemini-2.5-flash-lite",
               "history_message_count": 0,

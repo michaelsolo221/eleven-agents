@@ -65,9 +65,12 @@ Officer → Supervisor, via `transfer_to_agent`, condition (paraphrased from
 the live config): true only if the claimant has *explicitly and separately*
 stated, earlier in the same conversation — claim type; what happened; date/time;
 registration or address (matching claim type); incident location (vehicle
-only); a contact method; first name; last name; **and** had the spelling of
-both names explicitly confirmed by the claimant in any form (agent guessing +
-claimant confirming is valid). Any doubt on any item → condition is false.
+only); a contact method; first name; last name; **and**, on a *voice* call,
+had the spelling of both names explicitly confirmed by the claimant in any
+form (agent guessing + claimant confirming is valid). On a *text-only*
+conversation (e.g. WhatsApp), the typed name is exact and no spelling
+confirmation is required for this condition. Any doubt on any item →
+condition is false.
 
 There is no routing back from Supervisor to Officer. A second claim in the
 same session restarts the Officer's own claim-type branch (story 15) — the
@@ -87,7 +90,7 @@ Officer, not a fresh transfer, drives multi-claim continuation.
 | `property_address` | string | property | doubles as incident location |
 | `incident_location` | string | vehicle only | property claims use `property_address` instead |
 | `contact_method` | string | all | email OR phone, either satisfies |
-| `first_name` / `last_name` | string | all | spelling must be *explicitly confirmed by the claimant*, not just stated (any confirmation method — agent guessing + claimant confirming is valid) |
+| `first_name` / `last_name` | string | all | on voice calls, spelling must be *explicitly confirmed by the claimant*, not just stated (any confirmation method — agent guessing + claimant confirming is valid); on text-only conversations (e.g. WhatsApp) the typed name is exact and spelling confirmation must NOT be requested |
 | `nominated_representative` | boolean | — | true when caller is not the policyholder |
 
 ## 5. Guardrails
@@ -101,8 +104,10 @@ Both agents share the same `platform_settings.guardrails` shape:
 - `custom` → **Claim completeness before closing** (blocking, model
   `gemini-2.5-flash-lite`, `history_message_count: 0`) — blocks and retries
   any response that ends the call or declares lodgement while a required
-  field is verifiably absent from the transcript. Feedback message quotes
-  `{{trigger_reason}}` back to the agent.
+  field is verifiably absent from the transcript. Name spelling only counts
+  as a required field on voice calls; on text-only (WhatsApp) conversations
+  the typed name is exact and the guardrail does not require a spelling
+  exchange. Feedback message quotes `{{trigger_reason}}` back to the agent.
 
 Prompt-level guardrail sections (Officer only, not a platform guardrail —
 enforced by instruction text): Emergency, Non-Claims Inquiries, Wrong
@@ -203,22 +208,42 @@ Append a row after every CI run referenced in a debugging iteration (see
 
 ## 9. Known Issues
 
-1. **`workflow` block may be dead config, contradicting ADR 0002.**
-   `agent_configs/Claims-Lodgement-Officer.json` contains an
-   `officer_node`/`supervisor_node` `workflow` with a second, drifting copy
-   of the Supervisor's prompt baked into `supervisor_node.additional_prompt`
-   — it already lacks the "explicitly locate each field in the transcript"
-   step the real Supervisor agent's prompt has. History: `fda75cc` removed
-   this exact block ("was breaking agent behavior — all 15 tests failing"),
-   citing that the workflow-node edge never reliably transitioned (ADR
-   0002). The later commit `92ef41a` ("split into a separate agent")
-   reintroduced it while also adding the real `transfer_to_agent` tool. Not
-   verified whether the platform ignores `workflow` when a `transfer_to_agent`
-   tool is present and functioning, or whether this is live dead weight /
-   a latent double-transfer risk. **Needs a decision, not silent
-   documentation** — recommend either confirming it's inert and removing it,
-   or removing it as a follow-up cleanup regardless, since ADR 0002's own
-   reasoning says this mechanism doesn't work.
+1. **`workflow` block is confirmed live, not dead config — contradicts ADR
+   0002, and is now a suspect in a second production incident.**
+   `agent_configs/Claims-Lodgement-Officer.json` has `"workflow": null`
+   locally, but the *platform* has always kept a separate `officer_node`/
+   `supervisor_node` workflow that `elevenlabs agents push` cannot delete
+   (confirmed by `GET /v1/convai/agents/{id}` returning a populated
+   `workflow` object even after local removal). On 2026-07-15 this block's
+   `officer_to_supervisor` edge was firing `transfer_to_agent` autonomously
+   before name-spelling was confirmed, causing guardrail exhaustion on 3
+   consecutive calls (commit `2dbb58b`). The fix PATCHed the platform
+   directly (`edges={}`, `entry_behavior=wait_for_user` on `officer_node`)
+   rather than removing the workflow — so a `wait_for_user` node still sits
+   on the live agent with no edges into or out of it. On 2026-07-22, three
+   consecutive WhatsApp sessions immediately following a successful call
+   show the agent's greeting recorded in the transcript (`time_in_call_secs:
+   0`) but the session terminating in 6–14s with `cost: 0` and zero user
+   messages ("Client disconnected: 1000") — i.e. the greeting appears to
+   have been generated but never delivered. Not yet confirmed whether the
+   orphaned workflow node is the cause (vs. a WhatsApp/Meta delivery-layer
+   issue outside this repo's control), but it's the most repo-controllable
+   suspect given it already has one confirmed production incident on its
+   record. **Tried removing it via `PATCH {"workflow": null}` — the platform
+   silently ignored the null and returned the workflow completely unchanged**
+   (same nodes, same `edges: {}`), just under a new version_id. This is the
+   same silent-drop character as the CLI issues above, but on a direct API
+   PATCH this time, not the CLI. Given `edges: {}` means `start_node` has no
+   path to `officer_node`/`supervisor_node`/`end_node` at all, the workflow
+   is very likely genuinely disconnected from conversation routing already —
+   which fits the successful 2026-07-22 call (`conv_3001ky4r...`) completing
+   a normal 29-message exchange under the identical workflow config.
+   **Revised conclusion: the orphaned workflow is probably not the cause of
+   the undelivered-greeting sessions** — still present and undeletable via
+   this API, still worth raising with ElevenLabs support since a `null`
+   PATCH being silently ignored is itself a bug, but no longer the leading
+   suspect for the delivery issue. That investigation should now look at the
+   WhatsApp/Meta delivery layer instead (outside this repo).
 2. **No regression test for either agent's 2-attempt retry cap** (story 14,
    and the Supervisor's own `supervisor-respects-retry-cap` criterion). Both
    are prompt instructions with a platform `evaluation.criteria` entry on
@@ -243,3 +268,7 @@ Append a row after every CI run referenced in a debugging iteration (see
   Coverage Map: 31 PRD stories + 3 Supervisor-specific behaviors, 6 gaps
   identified (Known Issues #1–2, #4 most actionable).
 - **2026-07-12 (post-ADR 0003)** — Relaxed name-spelling (accepts agent-guessing + claimant-confirming). Officer `end_call` restricted to Emergency + Wrong Number only; Unresponsive/Timeout now route via Supervisor. Added `Claims-Lodgement-Officer-does-not-lodge-or-end-call` test. Updated evaluation criteria (`verifies-name-spelling` → `confirms-name-spelling`). Supervisor now handles non-claim transfers. See `docs/adr/0003-officer-end-call-restriction.md`.
+- **2026-07-22** — Production trace review (conversation `conv_3001ky4r174yfggt53r26gtjazd6`, WhatsApp, contact `0404999621`) found the agent asking the claimant to confirm name-spelling letter-by-letter on a text-only WhatsApp conversation. Root cause: the 2026-07-12 channel-aware spelling fix (`a5c51bf`) only updated the main prompt's text-only exception — the `transfer_to_agent` condition, the `Claim completeness before closing` guardrail, and the `verifies-name-spelling`/`confirms-name-spelling` eval criterion (the rename itself never actually landed) were left requiring spelling confirmation unconditionally, so those three enforcement points overrode the prompt's correct "skip on text-only" instruction. Fixed all three to carry the same text-only exception; eval criterion renamed to `confirms-name-spelling` (completing the rename ADR 0003 had already decided).
+  - While pushing the fix, discovered `elevenlabs agents push` was silently dropping the `transfer_to_agent` condition text specifically — two consecutive pushes left the live condition on stale, pre-2026-07-12 wording despite the local file and the push both reporting success. Confirmed via direct API fetch (eval criterion and guardrail persisted correctly on the same pushes; only `condition` didn't). Worked around with a direct API `PATCH` (documented in the repo's `CLAUDE.md` Local↔Platform Sync Fields section); `scripts/verify-live-tools.py` extended to diff local vs. live condition text per transfer target so this can't silently drift again.
+  - §6 gap "29 | WhatsApp channel, full lodgement happy path" is the coverage hole that let the original spelling bug ship — still open, should be closed with a WhatsApp-channel express-lodgement test asserting NO spelling question is asked.
+  - Also investigated a separate report of WhatsApp sessions with no delivered greeting (three consecutive sessions, `cost: 0`, "Client disconnected: 1000" within 6–14s). Attempted to remove the orphaned `workflow` block (Known Issue #1) as the leading repo-controllable suspect via `PATCH {"workflow": null}`; the platform silently ignored it. Confirmed `edges: {}` means the workflow is unreachable from `start_node` regardless, so it's unlikely to be the actual cause — issue remains unresolved and open, likely a WhatsApp/Meta-side delivery problem outside this repo.
