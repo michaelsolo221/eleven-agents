@@ -132,6 +132,7 @@ for entry in agents_data.get("agents", []):
     if expected_tools:
         actual_tools = live_tool_names(live)
         missing = expected_tools - actual_tools
+        extra = actual_tools - expected_tools
         if missing:
             msg = (
                 f"{entry['config']}: tool(s) {sorted(missing)} declared locally but "
@@ -140,8 +141,18 @@ for entry in agents_data.get("agents", []):
                 f" Patch the API directly to fix (see scripts/verify-live-tools.py docstring)."
             )
             fail(msg)
+        elif extra:
+            msg = (
+                f"{entry['config']}: tool(s) {sorted(extra)} present on "
+                f"{'branch ' + args.branch_name if args.branch_name else 'the live agent ' + entry['id']}"
+                f" but not declared locally — the CLI likely failed to remove a deleted tool during push"
+                f" (same silent-drop bug as missing tools, in reverse; see the 2026-07-26 transfer_to_agent"
+                f" incident in docs/adr/0005-retire-claims-supervisor-single-agent-lodgement.md)."
+                f" Patch the API directly to remove it."
+            )
+            fail(msg)
         else:
-            ok(f"{entry['config']}: all {len(expected_tools)} declared tool(s) present live")
+            ok(f"{entry['config']}: all {len(expected_tools)} declared tool(s) present live, no undeclared extras")
     if expected_webhook:
         live_wid = live_webhook_id(live)
         if live_wid != expected_webhook:

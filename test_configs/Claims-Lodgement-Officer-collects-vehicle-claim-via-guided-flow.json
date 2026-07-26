@@ -1,6 +1,7 @@
 {
   "name": "Claims Lodgement Officer collects vehicle claim via guided flow",
   "type": "llm",
+  "conversation_initiation_source": "twilio",
   "chat_history": [
     {
       "role": "user",
@@ -23,10 +24,10 @@
       "message": "Email is sarah.chen@example.com. My name is Sarah Chen."
     }
   ],
-  "success_condition": "The agent is mid-flow collecting a vehicle claim. The last user message provides the contact details and name. The agent should acknowledge the name and email, confirm the name spelling, confirm the claim is progressing, or transfer to the Claims Supervisor via transfer_to_agent (the supervisor will re-verify completeness and ask for anything genuinely missing before lodging). The agent should NOT restart with the greeting or ignore the information provided.",
+  "success_condition": "The agent is mid-flow collecting a vehicle claim. The last user message provides the contact details and name. The agent should acknowledge the name and email and confirm the name spelling. The agent should NOT restart with the greeting or ignore the information provided, and should NOT deliver the closing message or call end_call until name spelling has actually been confirmed.",
   "success_examples": [
         {
-            "response": "Thank you, Sarah. Let me confirm — is that S-A-R-A-H and C-H-E-N? Great, I have all your details. Let me transfer you now.",
+            "response": "Thank you, Sarah. Let me confirm — is that S-A-R-A-H and C-H-E-N?",
             "type": "success"
         },
     {

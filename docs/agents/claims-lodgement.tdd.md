@@ -1,84 +1,91 @@
-# TDD: CGU Claims Lodgement (Officer + Supervisor)
+# TDD: CGU Claims Lodgement (Officer)
 
 Reverse-engineered from `agent_configs/Claims-Lodgement-Officer.json`,
-`agent_configs/Claims-Lodgement-Supervisor.json`, `test_configs/*.json`,
-`docs/prd/001-claims-lodgement-agent.md`, and both ADRs. See
-`docs/agents/tdd-guide.md` for the methodology and section definitions.
-Domain terms below (Claim, Claimant, Risk Asset, etc.) are defined in
-`CONTEXT.md`.
+`test_configs/*.json`, `docs/prd/001-claims-lodgement-agent.md`, and the ADRs
+in `docs/adr/`. See `docs/agents/tdd-guide.md` for the methodology and
+section definitions. Domain terms below (Claim, Claimant, Risk Asset, etc.)
+are defined in `CONTEXT.md`.
 
 **Written from the current shipped config, not from `CONTEXT.md` or the
 ADRs alone** — see Known Issues #1 for a case where the two disagree.
 
+**Historical note:** until `docs/adr/0005-retire-claims-supervisor-single-agent-lodgement.md`,
+this flow was split across two registered agents (Officer + Supervisor),
+connected by `transfer_to_agent`. ADR 0002/0003 document why that shape was
+chosen and what it cost; ADR 0005 documents why it was retired. This TDD
+describes the current, single-agent shape only — see those ADRs for the
+prior design.
+
 ## 1. Architecture
 
-Two registered ElevenLabs agents, `agents.json`:
+One registered ElevenLabs agent, `agents.json`:
 
-- **Claims Lodgement Officer** ("Amanda") — opens every conversation. Owns
-  the greeting, claim-type branch (vehicle/property), guided-flow and
-  express-lodgement field collection, name-spelling confirmation, and every
-  guardrail except final lodgement (emergency, non-claims redirect, wrong
-  number, small talk, unresponsive caller, WhatsApp timeout). May call
-  `end_call` only for Emergency and Wrong Number — all other call-ending
-  paths route through the Supervisor via `transfer_to_agent`. Must not
-  speak or act after a successful transfer. Never declares a claim lodged.
-- **Claims Lodgement Supervisor** — never opens a conversation; only
-  entered via `transfer_to_agent` from the Officer. First determines the
-  transfer type: if Unresponsive Caller or WhatsApp Timeout, calls
-  `end_call` immediately; otherwise re-reads the full transcript
-  (`{{system__conversation_history}}`) independently — does not trust the
-  Officer's own belief that collection is complete. Either confirms +
-  lodges (only agent that says "Your claim has been lodged") or asks for
-  whatever it finds missing, capped at 2 attempts per field.
+- **Claims Lodgement Officer** ("Amanda") — opens every conversation and
+  owns it end to end: the greeting, claim-type branch (vehicle/property),
+  guided-flow and express-lodgement field collection, name-spelling
+  confirmation, every guardrail (emergency, non-claims redirect, wrong
+  number, small talk, unresponsive caller, WhatsApp timeout), its own
+  completeness confirmation, the Closing Message, and call termination.
+  May call `end_call` for: Emergency, Wrong Number, Unresponsive Caller,
+  WhatsApp Session Timeout, and Completed Claim. Never declares a claim
+  "lodged," never mentions a claim number or an email confirmation — the
+  Closing Message ("I've recorded your details. Our team will be in touch
+  within two business days.") is the entire promise. See `CONTEXT.md`'s
+  **Closing Message** and **Completeness Guardrail** entries.
 
-Per ADR 0002, the intended handoff mechanism is the `transfer_to_agent`
-system tool (a real cross-agent transfer), **not** ElevenLabs' `workflow`
-node graph — the workflow-node edge was tested and found not to reliably
-transition between two `override_agent` persona nodes. See Known Issues #1:
-the shipped Officer config still contains a `workflow` block that the ADR
-says was abandoned for exactly this reason.
+**Layered defense** (reduced from ADR 0002's four layers to two, since the
+independent second-agent re-read no longer exists — see ADR 0005 for why
+that was judged an acceptable trade):
+1. Officer's own silent completeness self-check, performed while collecting
+   fields and again immediately before delivering the Closing Message.
+2. `Claim completeness before closing` custom guardrail (blocking) — forces
+   a retry if a response ends the call or declares a claim complete while a
+   required field is verifiably absent from the transcript, or skips the
+   Closing Message before a completed-claim `end_call`. Does not apply to
+   Emergency, Wrong Number, Unresponsive Caller, or WhatsApp Timeout, which
+   have their own fixed short scripts and no completeness dependency.
 
-**Layered defense** (ADR 0002, "no single layer is airtight"):
-1. Officer's own silent completeness self-check before deciding to transfer.
-2. Officer's prompt instruction to transfer rather than self-end on completion.
-3. Supervisor's independent transcript re-read.
-4. `Claim completeness before closing` custom guardrail (blocking, both
-   agents) — forces a retry if a response ends the call or declares
-   lodgement while a required field is verifiably absent from the transcript.
+Layer 1 alone is not reliable (this is the same risk ADR 0002 flagged for
+the old officer-side self-check); layer 2 is the only mechanical check left
+in the stack.
 
-None of 1–3 are individually reliable per the ADR; layer 4 is the only
-mechanical check in the stack.
+| Tool | Type | Purpose |
+|---|---|---|
+| `end_call` | `system` | Emergency, Wrong Number, Unresponsive Caller, WhatsApp Timeout, or Completed Claim (after the Closing Message). Never for a claim still missing required fields — enforced by prompt + guardrail. |
 
-| Tool | Type | Agent(s) | Purpose |
-| `end_call` | `system` | Officer, Supervisor | Officer: emergency, wrong number only (never for completed claims, unresponsive caller, or WhatsApp timeout — those route through Supervisor). Supervisor: after confirming lodgement, exhausting retries, or handling non-claim transfers. |
-
-| Tool | Type | Agent(s) | Purpose |
-|---|---|---|---|
-| `end_call` | `system` | Officer, Supervisor | Officer: emergency, wrong number, unresponsive caller, WhatsApp timeout (never for a completed claim — enforced by prompt + guardrail, not by withholding the tool; see ADR 0002 "Officer keeps `end_call`"). Supervisor: after confirming lodgement or exhausting retries. |
-| `transfer_to_agent` | `system` | Officer only | Hands off to the Supervisor (`agent_8101kx3drtdwfmqtv6085k716gsz`). Condition is LLM-judged prose requiring every field to have been *explicitly* stated and name spelling *explicitly* confirmed — see §3. |
+No `transfer_to_agent` tool — removed under ADR 0005.
 
 No webhook tool captures structured claim data — the backend parses the
 post-call transcript webhook (`platform_settings.workspace_overrides.webhooks`,
 event `transcript`). Payload structure is explicitly out of scope (PRD,
 tracked in issue #2). This is why there are no `tool`-type tests in this
-Officer → Supervisor, via `transfer_to_agent`, condition (paraphrased from
-the live config): true only if the claimant has *explicitly and separately*
-stated, earlier in the same conversation — claim type; what happened; date/time;
-registration or address (matching claim type); incident location (vehicle
-only); a contact method; first name; last name; **and**, on a *voice* call,
-had the spelling of both names explicitly confirmed by the claimant in any
-form (agent guessing + claimant confirming is valid). On a *text-only*
-conversation (e.g. WhatsApp), the typed name is exact and no spelling
-confirmation is required for this condition. Any doubt on any item →
-condition is false.
+suite; all coverage is `llm`-type conversational eval.
 
-There is no routing back from Supervisor to Officer. A second claim in the
-same session restarts the Officer's own claim-type branch (story 15) — the
-Officer, not a fresh transfer, drives multi-claim continuation.
+## 2. Routing
+
+Single agent, no cross-agent handoff. A second claim in the same session
+does not restart the conversation — the Officer continues in place,
+collecting the next claim's fields before delivering a single Closing
+Message and ending the call (story 15; see the `multiple-claims` prompt
+rule).
+
+## 3. Closing Condition
+
+Before delivering the Closing Message or calling `end_call` for a completed
+claim, the Officer's own `closing-condition` rule requires every one of the
+following to have been *explicitly and separately* stated by the claimant,
+earlier in the same conversation: claim type; policy number (or asked and
+unavailable — best-effort only); what happened; date/time; registration or
+address (matching claim type); incident location (vehicle only); a contact
+method; first name; last name; **and**, on a *voice* call, the spelling of
+both names explicitly confirmed by the claimant in any form (agent guessing
++ claimant confirming is valid). On a *text-only* conversation (e.g.
+WhatsApp), the typed name is exact and no spelling confirmation is required.
+Any doubt on any item → treat as missing, ask for it, do not close.
 
 ## 4. Session / Data Variables
 
-`platform_settings.data_collection` (identical schema on both agents):
+`platform_settings.data_collection`:
 
 | Field | Type | Required for | Notes |
 |---|---|---|---|
@@ -95,7 +102,7 @@ Officer, not a fresh transfer, drives multi-claim continuation.
 
 ## 5. Guardrails
 
-Both agents share the same `platform_settings.guardrails` shape:
+`platform_settings.guardrails`:
 
 - `focus` + `prompt_injection` — enabled, defaults.
 - `content` — `harassment` and `profanity` at threshold 0.5, execution mode
@@ -103,24 +110,48 @@ Both agents share the same `platform_settings.guardrails` shape:
   / `religion_or_politics` / `medical_and_legal_information` disabled.
 - `custom` → **Claim completeness before closing** (blocking, model
   `gemini-2.5-flash-lite`, `history_message_count: 0`) — blocks and retries
-  any response that ends the call or declares lodgement while a required
-  field is verifiably absent from the transcript. Name spelling only counts
-  as a required field on voice calls; on text-only (WhatsApp) conversations
-  the typed name is exact and the guardrail does not require a spelling
-  exchange. Feedback message quotes `{{trigger_reason}}` back to the agent.
+  any response that ends the call or declares a claim complete for a
+  Completed Claim closure while a required field is verifiably absent from
+  the transcript, or that skips the Closing Message before `end_call`. Name
+  spelling only counts as a required field on voice calls; on text-only
+  (WhatsApp) conversations the typed name is exact and the guardrail does
+  not require a spelling exchange. Exempt: Emergency, Wrong Number,
+  Unresponsive Caller, WhatsApp Timeout. Feedback message quotes
+  `{{trigger_reason}}` back to the agent.
 
-Prompt-level guardrail sections (Officer only, not a platform guardrail —
-enforced by instruction text): Emergency, Non-Claims Inquiries, Wrong
-Number, Small Talk, Unresponsive Caller, WhatsApp Session Timeout,
-Mid-Lodgement Hang-Up.
+Prompt-level guardrail sections (not a platform guardrail — enforced by
+instruction text): Emergency, Non-Claims Inquiries, Wrong Number, Small
+Talk, Unresponsive Caller, WhatsApp Session Timeout, Mid-Lodgement Hang-Up.
 
-**Open question, not yet verified:** does the platform actually invoke
-`platform_settings.guardrails` during `agents test` / scenario-test runs, or
-only in live conversations? If test-mode skips guardrail evaluation, the
-completeness guardrail — the one mechanical layer in the stack — has no
-regression coverage at all, on top of the gaps in §6. Worth confirming
-against ElevenLabs docs before relying on CI to catch a guardrail
-regression.
+**Confirmed 2026-07-26 (was previously an open question): guardrails do NOT
+fire in CLI/API test-mode runs.** Tool call results in test-mode responses
+consistently show `"is_blocked": false` and `"reason": "Skipping tool call
+in test mode"`, including on responses that a live conversation's
+`Claim completeness before closing` guardrail should have blocked (e.g. an
+`end_call` attempt with a required field genuinely absent). This means the
+completeness guardrail — the one mechanical layer in the stack (§1) — has
+**zero regression coverage** from `test_configs/*.json`, confirmed, not
+just suspected. It can only be exercised via a real `simulate-conversation`
+or live call. Test-mode `llm` evals are therefore evaluating the raw,
+first-pass LLM judgment only, with no corrective retry loop — this is why
+tests near the completeness boundary (spelling not yet confirmed, terse
+"what happened" text) read as more failure-prone in CI than the agent
+actually is live, where the guardrail would catch and retry a bad attempt
+before it reaches the caller. See `docs/adr/0005-...md`'s rollout incident
+section for the investigation.
+
+**Test-mode channel pinning:** `llm`-type tests have no explicit
+voice/text-only signal by default — `{{system__is_text_only}}` resolves
+inconsistently run to run, which made every spelling-confirmation-dependent
+test flaky before this was found. `conversation_initiation_source` (e.g.
+`"twilio"`, `"whatsapp"`, `"widget"` — see `ConversationInitiationSource` in
+the CLI's bundled SDK types) is a real, CLI-supported per-test field that
+pins the simulated channel deterministically. Not documented anywhere in
+ElevenLabs' CLI docs at time of writing; discovered by inspecting the
+bundled SDK's TypeScript definitions. Voice-dependent tests in this repo
+now set `"conversation_initiation_source": "twilio"`; the WhatsApp-timeout
+test sets `"whatsapp"`. Tests without a channel-dependent assertion are left
+unset.
 
 ## 6. Coverage Map
 
@@ -134,30 +165,28 @@ judged against the *last* `chat_history` turn only — see
 |---|---|---|---|---|---|---|
 | 1–2 | Lodge vehicle claim, registration as asset ID | `llm` | `collects-vehicle-claim-via-guided-flow` | P1 | HIGH | vehicle, guided-flow |
 | 3–5 | Incident location, date/time, contact method (vehicle) | `llm` | `collects-vehicle-claim-via-guided-flow` (implicit — fields present in setup, not individually asserted) | P2 | MEDIUM | vehicle, guided-flow, PARTIAL |
-| 6 | Confirm name spelling | `llm` | `collects-*-via-guided-flow`, `handles-express-*-claim`, `transfers-to-supervisor-when-complete` | P0 | HIGH | name-spelling |
+| 6 | Confirm name spelling | `llm` | `collects-*-via-guided-flow`, `handles-express-*-claim`, `completes-claim-and-ends-call` | P0 | HIGH | name-spelling |
 | 7–8 | Property claim via address; address doubles as incident location | `llm` | `collects-property-claim-via-guided-flow` | P1 | HIGH | property, guided-flow |
 | 9–10 | Express lodgement dump; name spelling still verified | `llm` | `handles-express-property-claim`, `handles-express-vehicle-claim` | P1 | HIGH | express |
 | 11 | Guided flow, one field at a time | `llm` | `collects-*-via-guided-flow` | P1 | MEDIUM | guided-flow |
 | 12 | Ask vehicle/property upfront | *(none)* | — platform `evaluation.criteria: asks-vehicle-or-property-upfront` exists but is analysis-only scoring, not a CI-gating test | P1 | MEDIUM | **GAP** |
 | 13 | Missing policy number (headless claim) | `llm` | `handles-missing-policy-number` | P0 | HIGH | best-effort-field |
-| 14 | 2-attempt cap then lodge anyway (Officer side) | *(none)* | — | P1 | HIGH | **GAP** — retry-cap |
+| 14 | 2-attempt cap then wrap up anyway | *(none)* | — | P1 | HIGH | **GAP** — retry-cap |
 | 15 | Multiple claims, one session | `llm` | `handles-multiple-claims` | P1 | MEDIUM | multi-claim |
 | 16–17 | Nominated representative | `llm` | `handles-nominated-representative` | P1 | MEDIUM | nominated-rep |
 | 18 | Emergency → 000, end call | `llm` | `handles-emergency-redirect` + negative case `treats-past-events-as-valid-claims` | P0 | NO-GO | emergency, safety |
 | 19–20 | Claim status redirect, offer new claim | `llm` | `redirects-claim-status-inquiry`¹ | P1 | MEDIUM | redirect |
 | 21–22 | Unresponsive caller: prompt, then end call | `llm` | `handles-unresponsive-caller` | P0 | HIGH | safety, unresponsive |
-| 23 | Post-lodgement closing message | `llm` | `Claims-Lodgement-Supervisor-confirms-when-complete` | P0 | HIGH | closing-message |
+| 23 | Post-completion Closing Message | `llm` | `completes-claim-and-ends-call` | P0 | HIGH | closing-message |
 | 24 | Hang-up mid-lodgement → webhook fires with partial data | *(none — untestable as an `llm`/`simulation` chat eval)* | — | P1 | HIGH | **GAP — different remediation path**, see below |
 | 25 | WhatsApp session timeout (1hr) | `llm` | `handles-whatsapp-session-timeout` | P1 | MEDIUM | whatsapp, timeout |
 | 26 | Wrong number | `llm` | `handles-wrong-number` | P1 | MEDIUM | redirect |
 | 27 | Small talk, steer back | `llm` | `steers-small-talk` | P2 | LOW | small-talk |
-| 21–22 | Unresponsive caller: prompt, then transfer to Supervisor | `llm` | `handles-unresponsive-caller` | P0 | HIGH | safety, unresponsive |
 | 29 | WhatsApp channel, full lodgement happy path | *(none — only the timeout edge case is WhatsApp-specific)* | — | P2 | LOW | **GAP** — channel |
 | 30 | Phone channel | *(implicit — default context of all tests)* | — | — | — | covered generically |
 | 31 | Switch between text and voice mid-conversation | *(none)* | — | P2 | LOW | **GAP** — channel |
-| — | Officer transfers exactly when complete (routing, not a numbered story) | `llm` | `transfers-to-supervisor-when-complete` | P0 | HIGH | routing |
-| — | Supervisor catches a field the Officer missed | `llm` | `Claims-Lodgement-Supervisor-catches-missing-field` | P0 | HIGH | supervisor, safety-net |
-| — | Officer does not lodge or end call after all fields collected | `llm` | `Claims-Lodgement-Officer-does-not-lodge-or-end-call` | P0 | HIGH | routing, post-transfer |
+| — | Officer closes exactly when complete (routing, not a numbered story) | `llm` | `completes-claim-and-ends-call` | P0 | HIGH | routing, closing |
+| — | Officer does not close or end call with a field still missing | `llm` | `does-not-close-with-missing-fields` | P0 | HIGH | routing, completeness |
 
 ¹ Filename says "redirects-claim-status-inquiry" but the test's internal
 `name` field reads "...redirects non-claims inquiries **from greeting**" —
@@ -173,7 +202,7 @@ not inquiring either" isn't tested as a distinct case.
 **Structural gap, not row-specific:** every Officer `llm` test is a
 mid-conversation snapshot — `chat_history` primes prior turns, only the
 response to the *last* turn is judged. No test exercises a full
-greeting-to-transfer conversation end-to-end, so ordering bugs (e.g. the
+greeting-to-close conversation end-to-end, so ordering bugs (e.g. the
 Officer re-asking a field it already has, three turns after collecting it)
 have no coverage. Per `docs/agents/tdd-guide.md`, this is exactly what
 `simulation`-type tests exist for; none are configured yet.
@@ -200,9 +229,11 @@ rather than inventing new values, so transcripts stay easy to diff:
 
 ## 8. Pass Rate History
 
-| Date | Trigger | Officer (16 tests) | Supervisor (2 tests) | Notes |
-|---|---|---|---|---|
-| 2026-07-12 | ADR 0003 redesign | 18/21 passing (officer: 18 tests, supervisor: 3 tests) | Relaxed name-spelling. Added `does-not-lodge-or-end-call` test. Updated transfer test. Officer end_call restricted to Emergency + Wrong Number only. |
+| Date | Trigger | Officer (18 tests) | Notes |
+|---|---|---|---|
+| 2026-07-12 | ADR 0003 redesign | 18/21 passing (officer: 18 tests, supervisor: 3 tests — supervisor since retired) | Relaxed name-spelling. Added `does-not-lodge-or-end-call` test. Updated transfer test. Officer end_call restricted to Emergency + Wrong Number only. |
+| 2026-07-26 | ADR 0005 — Supervisor retired | 16-18/18 typical (settled, after 3 fixes) | Supervisor removed; 3 Supervisor tests deleted; Officer gained `end_call` for Completed Claim, Unresponsive Caller, WhatsApp Timeout. Two tests renamed/rewritten (`completes-claim-and-ends-call`, `does-not-close-with-missing-fields`); several others had their transfer-fallback branches removed. Initial rollout was flaky (13/18) due to two live-state bugs (stale `transfer_to_agent` tool, orphaned workflow prompt injection — see `experiment_log.md` 2026-07-26 and ADR 0005's rollout incident section) plus test-mode channel ambiguity, all fixed same day. Remaining ~2/18 flakiness is ordinary evaluator variance (Known Issue #7). |
+
 Append a row after every CI run referenced in a debugging iteration (see
 `docs/agents/debugging-guide.md`) or before/after a Coverage Map change.
 
@@ -243,12 +274,14 @@ Append a row after every CI run referenced in a debugging iteration (see
    this API, still worth raising with ElevenLabs support since a `null`
    PATCH being silently ignored is itself a bug, but no longer the leading
    suspect for the delivery issue. That investigation should now look at the
-   WhatsApp/Meta delivery layer instead (outside this repo).
-2. **No regression test for either agent's 2-attempt retry cap** (story 14,
-   and the Supervisor's own `supervisor-respects-retry-cap` criterion). Both
-   are prompt instructions with a platform `evaluation.criteria` entry on
-   the Supervisor side, but neither has a `test_configs/*.json` that forces
-   two failed attempts and asserts "lodge anyway" happens on the third.
+   WhatsApp/Meta delivery layer instead (outside this repo). **Now that the
+   Supervisor is retired (ADR 0005), the orphaned `supervisor_node` this
+   workflow references points at a deleted agent — worth re-checking whether
+   the platform errors or silently no-ops on a workflow edge targeting a
+   deleted agent ID, next time this is touched.**
+2. **No regression test for the Officer's 2-attempt retry cap** (story 14).
+   It's a prompt instruction only — no `test_configs/*.json` forces two
+   failed attempts and asserts "wrap up anyway" happens on the third.
 3. **Story 24 (hang-up mid-lodgement fires the webhook with partial data)
    cannot be covered by `llm`/`simulation` chat tests at all** — it's a
    disconnect-triggered backend behavior, not a scripted response. Needs a
@@ -256,10 +289,18 @@ Append a row after every CI run referenced in a debugging iteration (see
    actual webhook delivery) once the webhook payload work in issue #2 lands
    — tracking it here so it isn't mistaken for a testable Coverage Map gap.
 4. **Zero `simulation`-type tests** — see the structural gap note in §6.
-5. **Guardrail test-mode coverage is unverified**, not confirmed absent —
-   see §5's open question.
+5. **Guardrail test-mode coverage is confirmed absent** (was previously
+   listed as unverified) — see §5. The `Claim completeness before closing`
+   guardrail never fires in `llm`-type test runs; only a live call or
+   `simulate-conversation` exercises it. No CI-gating test protects this
+   layer.
 6. Filename/content-name drift on `redirects-claim-status-inquiry.json`
    (§6, footnote 1) — low-severity but slows down triage.
+7. **`collects-vehicle-claim-via-guided-flow` and `handles-express-vehicle-claim`
+   remain the two flakiest tests post-2026-07-26** (~1/3 fail rate even with
+   channel pinned) — reads as ordinary LLM-evaluator variance on a
+   borderline-complete transcript, not a regression, but worth a wording
+   pass if it doesn't settle.
 
 ## 10. Changelog
 
@@ -272,3 +313,4 @@ Append a row after every CI run referenced in a debugging iteration (see
   - While pushing the fix, discovered `elevenlabs agents push` was silently dropping the `transfer_to_agent` condition text specifically — two consecutive pushes left the live condition on stale, pre-2026-07-12 wording despite the local file and the push both reporting success. Confirmed via direct API fetch (eval criterion and guardrail persisted correctly on the same pushes; only `condition` didn't). Worked around with a direct API `PATCH` (documented in the repo's `CLAUDE.md` Local↔Platform Sync Fields section); `scripts/verify-live-tools.py` extended to diff local vs. live condition text per transfer target so this can't silently drift again.
   - §6 gap "29 | WhatsApp channel, full lodgement happy path" is the coverage hole that let the original spelling bug ship — still open, should be closed with a WhatsApp-channel express-lodgement test asserting NO spelling question is asked.
   - Also investigated a separate report of WhatsApp sessions with no delivered greeting (three consecutive sessions, `cost: 0`, "Client disconnected: 1000" within 6–14s). Attempted to remove the orphaned `workflow` block (Known Issue #1) as the leading repo-controllable suspect via `PATCH {"workflow": null}`; the platform silently ignored it. Confirmed `edges: {}` means the workflow is unreachable from `start_node` regardless, so it's unlikely to be the actual cause — issue remains unresolved and open, likely a WhatsApp/Meta-side delivery problem outside this repo.
+- **2026-07-26** — Claims Lodgement Supervisor retired (ADR 0005): the flow no longer promises a claim number or lodgement email, so the independent second-agent completeness re-read was judged to protect nothing a same-agent guardrail couldn't. Officer absorbed all closing responsibility — `end_call` now covers Completed Claim, Unresponsive Caller, and WhatsApp Timeout in addition to Emergency and Wrong Number. New Closing Message: "I've recorded your details. Our team will be in touch within two business days." `transfer_to_agent` removed from the Officer's tool set. Architecture, Tools, Routing, Guardrails, and Coverage Map sections rewritten for the single-agent shape; Utility/Telecom Customer Intake agent (unrelated, separate flow) also removed from this repo in the same session.

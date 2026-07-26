@@ -3,20 +3,8 @@
         {
             "config": "agent_configs/Claims-Lodgement-Officer.json",
             "id": "agent_0201kws9cya0fpna5k8vz7cy99d8",
-            "version_id": "agtvrsn_2401ky4sgcnzeq4r1vmxe9gzhf70",
+            "version_id": "agtvrsn_2701kyehs6kde6jt4msz134yz59x",
             "branch_id": "agtbrch_9101kws9cyzjf1htab6aqjr27fg7"
-        },
-        {
-            "config": "agent_configs/Claims-Lodgement-Supervisor.json",
-            "id": "agent_8101kx3drtdwfmqtv6085k716gsz",
-            "version_id": "agtvrsn_9801kxgf4yb7ex78mwznn8jtnewh",
-            "branch_id": "agtbrch_2601kx3drzprexnbhb233av2hpvx"
-        },
-        {
-            "config": "agent_configs/Utility-Telecom-Customer-Intake.json",
-            "id": "agent_8301kxa8k75qf1ashstbsnkqa1bf",
-            "version_id": "agtvrsn_5501kxa8k77jem9s5p4g2vtzjm4w",
-            "branch_id": "agtbrch_4101kxa8k75rfwj873n14nw18744"
         }
     ]
 }

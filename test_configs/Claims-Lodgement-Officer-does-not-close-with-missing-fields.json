@@ -1,0 +1,52 @@
+{
+    "name": "Claims Lodgement Officer does not close or end call with a field still missing",
+    "type": "llm",
+    "conversation_initiation_source": "twilio",
+    "chat_history": [
+        {
+            "role": "user",
+            "time_in_call_secs": 5,
+            "message": "I need to lodge a vehicle claim. My car was hit while parked."
+        },
+        {
+            "role": "user",
+            "time_in_call_secs": 15,
+            "message": "Policy number is POL-789012, registration XYZ-456."
+        },
+        {
+            "role": "user",
+            "time_in_call_secs": 25,
+            "message": "It happened today at 10am outside 200 George Street, Sydney."
+        },
+        {
+            "role": "user",
+            "time_in_call_secs": 35,
+            "message": "You can call me on 0412 345 678. My name is Sarah Chen."
+        }
+    ],
+    "success_condition": "Every field has been provided EXCEPT name spelling has not yet been confirmed by the claimant — the claimant has only spoken their name, which is not the same as confirming its spelling on a voice call. The agent must NOT deliver the closing message ('recorded your details... two business days'), must NOT call end_call, must NOT say the claim has been lodged, and must NOT mention a claim number or email. The agent should instead ask the claimant to confirm the spelling of their name (either by asking them to spell it, or by guessing the spelling and asking them to confirm).",
+    "success_examples": [
+        {
+            "response": "Thanks Sarah, just to confirm the spelling of your name — is that S-A-R-A-H C-H-E-N?",
+            "type": "success"
+        },
+        {
+            "response": "Great, before I wrap up could you spell your first and last name for me please?",
+            "type": "success"
+        }
+    ],
+    "failure_examples": [
+        {
+            "response": "I've recorded your details. Our team will be in touch within two business days.",
+            "type": "failure"
+        },
+        {
+            "response": "Great, that's everything I need. Your claim has been lodged. Expect an email within 1 business day with your claim number.",
+            "type": "failure"
+        },
+        {
+            "response": "Perfect, all done. Thanks for calling, goodbye.",
+            "type": "failure"
+        }
+    ]
+}

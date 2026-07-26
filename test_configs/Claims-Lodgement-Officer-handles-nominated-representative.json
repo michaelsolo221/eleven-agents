@@ -1,6 +1,7 @@
 {
     "name": "Claims Lodgement Officer handles nominated representative",
     "type": "llm",
+    "conversation_initiation_source": "twilio",
     "chat_history": [
         {
             "role": "user",
@@ -18,7 +19,7 @@
             "message": "Her address is 15 Smith Street, Melbourne. My name is Emily Park. My phone is 0400 111 222."
         }
     ],
-    "success_condition": "The caller is a nominated representative calling on behalf of the policyholder (their mum). The agent must NOT refuse to proceed or demand to speak to the policyholder directly. The agent must accept the caller as the point of contact and continue with the claim lodgement process. Continuing the claim lodgement process includes transferring to the Claims Supervisor via transfer_to_agent if the claim is genuinely complete at this point.",
+    "success_condition": "The caller is a nominated representative calling on behalf of the policyholder (their mum). The agent must NOT refuse to proceed or demand to speak to the policyholder directly. The agent must accept the caller as the point of contact and continue with the claim lodgement process — either by confirming name spelling (not yet done in this transcript), or by asking a genuine clarifying question about a field it judges as still incomplete (e.g. more detail on what happened). The agent must NOT deliver the closing message or call end_call, since name spelling has not been confirmed.",
     "success_examples": [
         {
             "response": "Thank you, Emily. Let me confirm the spelling — E-M-I-L-Y, P-A-R-K?",

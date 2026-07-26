@@ -1,6 +1,7 @@
 {
     "name": "Claims Lodgement Officer handles unresponsive caller",
     "type": "llm",
+    "conversation_initiation_source": "twilio",
     "chat_history": [
         {
             "role": "user",
@@ -8,7 +9,7 @@
             "message": "..."
         }
     ],
-    "success_condition": "The caller has been unresponsive (provided no meaningful input). The agent should prompt the caller to check if they are still there, but must NOT continue talking indefinitely. If the caller remains unresponsive, the agent should end the call politely. The agent must not hang silently or loop forever.",
+    "success_condition": "The caller has been unresponsive (provided no meaningful input). The agent should prompt the caller to check if they are still there, but must NOT continue talking indefinitely. If the caller remains unresponsive, the agent should say a brief closing line and call end_call itself — there is no supervisor to hand off to. The agent must not hang silently or loop forever, and must not mention transferring or a supervisor.",
     "success_examples": [
         {
             "response": "Hello? Are you still there? If you'd like to lodge a claim, I'm here to help.",

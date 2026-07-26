@@ -1,6 +1,7 @@
 {
     "name": "Claims Lodgement Officer handles express property claim",
     "type": "llm",
+    "conversation_initiation_source": "twilio",
     "chat_history": [
         {
             "role": "user",
@@ -8,10 +9,10 @@
             "message": "Property claim. Policy POL-444555. Storm damage on the 22nd of June at around 6pm. Address is 15 Smith Street, Melbourne. Phone 0412 987 654. Name Rachel Kim."
         }
     ],
-    "success_condition": "The user has dumped all property claim info in one message (express lodgement), including a name whose spelling has not yet been explicitly confirmed. The agent should acknowledge the information provided and either ask for name spelling verification, confirm the claim is being lodged, or transfer to the Claims Supervisor via transfer_to_agent (the supervisor independently checks for unconfirmed name spelling and will ask for it before lodging if the officer transferred early). The agent should NOT ask for information that was already provided, and should NOT restart with the greeting. The property address serves as both the risk asset and incident location.",
+    "success_condition": "The user has dumped all property claim info in one message (express lodgement), including a name whose spelling has not yet been explicitly confirmed. The agent should acknowledge the information provided and ask for name spelling verification before wrapping up. The agent should NOT ask for information that was already provided, should NOT restart with the greeting, and should NOT deliver the closing message or call end_call until name spelling has actually been confirmed. The property address serves as both the risk asset and incident location.",
     "success_examples": [
         {
-            "response": "Thank you, Rachel. Let me confirm the spelling — is that R-A-C-H-E-L, K-I-M? I have all your details for the property at 15 Smith Street, Melbourne. Let me get this confirmed for you.",
+            "response": "Thank you, Rachel. Let me confirm the spelling — is that R-A-C-H-E-L, K-I-M?",
             "type": "success"
         },
         {

@@ -1,6 +1,7 @@
 {
   "name": "Claims Lodgement Officer collects property claim via guided flow",
   "type": "llm",
+  "conversation_initiation_source": "twilio",
   "chat_history": [
     {
       "role": "user",
@@ -18,10 +19,10 @@
       "message": "The property is at 42 Wallaby Way, Sydney. Phone is 0412 345 678. Name David Tan."
     }
   ],
-  "success_condition": "The agent is mid-flow collecting a property claim. The last user message provides the address, contact, and name. The agent should acknowledge the details and either confirm name spelling, confirm the claim is progressing, or transfer to the Claims Supervisor via transfer_to_agent (the supervisor will re-verify completeness and ask for anything genuinely missing before lodging). The agent should NOT restart with the greeting or ignore the information provided.",
+  "success_condition": "The agent is mid-flow collecting a property claim. The last user message provides the address, contact, and name. The agent should acknowledge the details and confirm name spelling. The agent should NOT restart with the greeting or ignore the information provided, and should NOT deliver the closing message or call end_call until name spelling has actually been confirmed.",
   "success_examples": [
         {
-            "response": "Thank you, David. Let me confirm — is that D-A-V-I-D and T-A-N? I have all your details for the property at 42 Wallaby Way. Let me transfer you to finalise.",
+            "response": "Thank you, David. Let me confirm — is that D-A-V-I-D and T-A-N?",
             "type": "success"
         },
     {

@@ -98,8 +98,8 @@ When delegating implementation:
 ## Debugging Failing Tests
 
 Full methodology: `docs/agents/debugging-guide.md`. Log every fix attempt
-(worked or not) in `experiment_log.md` — prevents ping-ponging fixes between
-the Officer and Supervisor.
+(worked or not) in `experiment_log.md` — prevents ping-ponging between
+conflicting fixes.
 
 1. Use ElevenLabs API directly to simulate conversation and see agent's actual response:
    ```bash
@@ -111,9 +111,10 @@ the Officer and Supervisor.
    test that fails ≥2/3 runs.
 4. **Fix order** (earlier categories cascade-fix later ones — see full guide
    for detail): eval-config error → platform error → missing/wrong tool call
-   (esp. `transfer_to_agent`) → wrong params → expectation fail →
-   hallucination → cross-agent contradiction → text/tone.
-5. **Cross-agent regression check is mandatory**: any instruction change to
-   either agent must be re-validated against BOTH agents' full test suites
-   before calling a fix done — the Officer/Supervisor handoff means a fix on
-   one side can silently break the other.
+   (esp. `end_call`) → wrong params → expectation fail → hallucination →
+   rule contradiction → text/tone.
+5. **Full-suite regression check is mandatory**: any instruction change must
+   be re-validated against the Officer's entire test suite before calling a
+   fix done — a change to one rule can silently break a test tied to a
+   different rule. (Single agent as of ADR 0005 — see `docs/agents/debugging-guide.md`
+   if a second agent is ever reintroduced.)
