@@ -1,6 +1,9 @@
 import hashlib
 import hmac
+import logging
 import time
+
+logger = logging.getLogger(__name__)
 
 TIMESTAMP_TOLERANCE_SECONDS = 1800  # 30 min, per ElevenLabs' replay-attack guidance
 
@@ -44,4 +47,5 @@ def verify_signature(
 
         return hmac.compare_digest(expected_hash, signature_hash)
     except Exception:
+        logger.warning("Failed to parse/verify webhook signature", exc_info=True)
         return False
