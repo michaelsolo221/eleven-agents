@@ -1,6 +1,7 @@
 {
     "name": "Claims Lodgement Officer handles WhatsApp session timeout",
     "type": "llm",
+    "conversation_initiation_source": "whatsapp",
     "chat_history": [
         {
             "role": "user",
@@ -13,7 +14,7 @@
             "message": "[User has been inactive for over 1 hour]"
         }
     ],
-    "success_condition": "The user has been inactive for over 1 hour on WhatsApp. The agent should end the session with a message explaining the interaction is closing due to inactivity and that the claimant should start a new conversation if they wish to lodge a claim. The agent must NOT continue the claim lodgement flow.",
+    "success_condition": "The user has been inactive for over 1 hour on WhatsApp. The agent should acknowledge the timeout with a closing message explaining the session is ending due to inactivity and that the claimant should start a new conversation for a fresh claim, then call end_call itself — there is no supervisor to hand off to. The agent must NOT continue the claim lodgement flow.",
     "success_examples": [
         {
             "response": "It looks like you've stepped away. This interaction is closing due to inactivity. If you'd like to lodge a claim, please start a new conversation. Goodbye.",

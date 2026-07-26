@@ -41,7 +41,7 @@ Either an email address or a phone number — at least one required. Used for fo
 _Avoid_: Contact details, phone/email
 
 **Contact Person**:
-The point of contact for the claim — whoever we can speak to. First name and last name required. Name spelling is always verified, even in express mode. May be the policyholder or a Nominated Representative.
+The point of contact for the claim — whoever we can speak to. First name and last name required. Name spelling is always confirmed with the claimant on voice calls (any method — agent guesses or asks to spell). May be the policyholder or a Nominated Representative.
 _Avoid_: Claimant name, caller name
 
 **Nominated Representative**:
@@ -61,32 +61,24 @@ _Avoid_: Mag dump, fast mode, quick lodgement
 ## Verification & Escalation
 
 **Claims Officer**:
-The Agent that conducts intake — "Amanda". A separate registered ElevenLabs Agent, not a persona within a larger agent. Owns the greeting, Guided Flow / Express Lodgement, and every guardrail except final lodgement itself. Never declares a claim lodged and, since it never receives that instruction, should never say so.
+The Agent that conducts intake — "Amanda". Owns the entire interaction end to end: greeting, Guided Flow / Express Lodgement, completeness confirmation, the closing wrap-up, and call termination. There is no separate lodgement/validation agent — see Completeness Guardrail. May call `end_call` for: Emergency redirect, Wrong Number, Unresponsive Caller, WhatsApp Session Timeout, and a completed claim (after delivering the Closing Message). Never says a claim has been "lodged" or mentions a claim number — see Closing Message.
 _Avoid_: The agent, the bot, the assistant
 
-**Claims Supervisor**:
-A second, separate registered Agent that the Claims Officer hands the call to once it believes intake is complete. Its only job is to re-verify completeness against the actual conversation transcript — not against the officer's own belief — and either confirm and lodge the claim, or collect whatever is genuinely missing. It is the only agent that ever tells a claimant their claim has been lodged.
-_Avoid_: QA agent, reviewer, validator agent
-
-**Transfer**:
-The hand-off from the Claims Officer to the Claims Supervisor, via the `transfer_to_agent` mechanism — a genuine switch to a different Agent, not a change of persona within one agent. See `docs/adr/0002-claims-supervisor-as-separate-agent.md` for why this replaced an earlier same-agent workflow-node design that didn't work in practice.
-_Avoid_: Handoff (fine informally, but "Transfer" is the term used in config and should be used consistently in prompts/docs), escalation
+**Closing Message**:
+The line the Claims Officer speaks once every required field for a claim (including name spelling, on voice calls) has been collected: "I've recorded your details. Our team will be in touch within two business days." Spoken before `end_call`, on both voice and WhatsApp — the wording does not need to differ by channel. Replaces the old Claims Supervisor's lodgement confirmation; deliberately avoids "lodged," a claim number, or an email promise, since none of those exist in this flow. See `docs/adr/0005-retire-claims-supervisor-single-agent-lodgement.md`.
+_Avoid_: Lodgement confirmation, claim number, transfer message
 
 **Completeness Check**:
-The Claims Officer's own silent check of captured data against the required field set, performed as it collects fields. If fields are missing, the officer asks for them. After two failed attempts for any single field, the officer is expected to lodge with whatever is available. This is the Officer's own judgment and can be wrong — see Supervisor Review.
+The Claims Officer's own silent check of captured data against the required field set, performed as it collects fields and again immediately before delivering the Closing Message. If fields are missing, the officer asks for them. After two failed attempts for any single field, the officer is expected to wrap up and end the call with whatever is available. This is the Officer's own judgment and can be wrong — see Completeness Guardrail.
 _Avoid_: Validation, data check
 
-**Supervisor Review**:
-A second, independent completeness check performed by the Claims Supervisor after the Transfer — re-reading the actual transcript rather than trusting the officer's self-assessment. Exists specifically because the officer's own Completeness Check can be wrong: the officer may believe a field was collected, or believe the claim is complete, when it wasn't, and may Transfer before intake is genuinely finished. Mirrors the officer's two-attempt-then-lodge-anyway rule for any fields it finds missing. The Supervisor Review can itself be wrong; see Completeness Guardrail.
-_Avoid_: Second check, double-check, QA pass
-
 **Completeness Guardrail**:
-An automatic check on every agent response, independent of both the Officer and the Supervisor, that blocks — and forces a retry of — any response which ends the call or declares the claim lodged while a required field is genuinely absent from the transcript. The last line of defense if both the officer's and the supervisor's own completeness judgment are wrong. Configured identically on both agents.
+An automatic check on every Officer response that blocks — and forces a retry of — any response which ends the call, or declares a claim complete, while a required field is genuinely absent from the transcript, or which skips the Closing Message before a completed-claim `end_call`. The last line of defense if the Officer's own Completeness Check is wrong. Does not apply to Emergency, Wrong Number, Unresponsive Caller, or WhatsApp Session Timeout closures, which have their own short scripts.
 _Avoid_: Safety check, content filter
 
-**Name Spelling Verification**:
-The agent confirms the exact spelling of the claimant's first and last name. Always performed, regardless of interaction mode.
-_Avoid_: Name confirmation, identity check
+**Name Spelling Confirmation**:
+The agent confirms the exact spelling of the claimant's first and last name with the claimant. Any confirmation method is acceptable: the agent may ask the claimant to spell their name, or the agent may guess the spelling and ask the claimant to confirm. On text-only channels (WhatsApp), no spelling confirmation is needed — the typed name is exact. Always performed on voice calls, regardless of interaction mode.
+_Avoid_: Name confirmation, identity check, name verification
 
 **Emergency Redirect**:
 Immediate termination when the claimant states they are in danger or unsafe right now. The agent says to call 000 and ends the interaction.
@@ -99,3 +91,16 @@ _Avoid_: General inquiries redirect
 **Session Timeout**:
 On WhatsApp text interactions, the agent ends the session after 1 hour of claimant inactivity. The agent tells the claimant the interaction is closing and to start a new one for a fresh claim.
 _Avoid_: Idle timeout, conversation expiry
+## Post-Call & Integrations
+
+**Post-Call Webhook Receiver**:
+An HTTP microservice (hosted via Coolify) that receives and authenticates ElevenLabs `post_call_transcription` webhook events immediately after a call or text interaction concludes.
+_Avoid_: Webhook listener, state service, backend proxy
+
+**Call Disposition Status**:
+The outcome classification assigned to a completed interaction (`COMPLETE`, `INCOMPLETE`, `ALERT`, `REDIRECT`). Explicitly prefixed in the email subject line to provide instant visibility to claims handlers.
+_Avoid_: Call outcome, status label, status tag
+
+**Claim Summary Email**:
+An HTML notification email dispatched via Resend immediately after a call. Contains a structured claim field summary table, quality/evaluation check results, and a chronological conversation transcript log.
+_Avoid_: Claim report email, transcript notification

@@ -2,8 +2,11 @@
 
 Adapted from Google's CXAS-SCRAPI `agent-foundry` debug methodology
 (https://googlecloudplatform.github.io/cxas-scrapi/), ported to ElevenLabs'
-`llm` / `tool` / `simulation` test types and this repo's two-agent
-(Claims-Lodgement-Officer → Claims-Lodgement-Supervisor) architecture.
+`llm` / `tool` / `simulation` test types and this repo's single-agent
+(Claims-Lodgement-Officer) architecture. Until `docs/adr/0005-retire-claims-supervisor-single-agent-lodgement.md`,
+this was a two-agent (Officer → Supervisor) architecture — the cross-agent
+regression check below described that era and no longer applies, but is
+kept as a reminder of the pattern in case a second agent is reintroduced.
 
 See `CLAUDE.md` → "Debugging Failing Tests" for the quick-reference version.
 This file is the full methodology; load it when a fix isn't obvious from the
@@ -19,17 +22,16 @@ quick reference, or when failures span multiple tests.
   fails once may pass 2/3 times. Run any failing test **3 times** before
   deciding it's a real failure — only act on a test that fails **2 or more
   of 3** runs. A single flaky failure gets re-run, not fixed.
-- **Don't ping-pong.** If a fix to the Officer's instructions regresses a
-  Supervisor test (or vice versa), don't flip the fix back and forth. Read
-  both failing transcripts, find the actual instruction conflict, resolve it
-  once. Check `experiment_log.md` first — the same conflict may already be
-  documented from a prior iteration.
-- **Cross-agent regression check is mandatory.** This repo has two agents
-  that hand off via `transfer_to_agent` (see `CONTEXT.md` → "Transfer").
-  Any instruction change to *either* agent must be validated against
-  **both** agents' full test suites — a Supervisor fix can silently break
-  an Officer test that depends on wording the Officer relies on the
-  Supervisor to echo back, and vice versa.
+- **Don't ping-pong.** If a fix to one rule regresses a test tied to a
+  different rule, don't flip the fix back and forth. Read both failing
+  transcripts, find the actual instruction conflict, resolve it once. Check
+  `experiment_log.md` first — the same conflict may already be documented
+  from a prior iteration.
+- **Full-suite regression check is still mandatory**, even single-agent: any
+  instruction change must be validated against the Officer's **entire** test
+  suite, not just the test(s) it was meant to fix — one rule change (e.g. to
+  `closing-condition`) can silently break an unrelated test (e.g.
+  `handles-missing-policy-number`) that depends on the same wording.
 - **Check `experiment_log.md` before proposing a fix.** If a similar
   approach was already tried and reverted, don't repeat it — try a
   different strategy or escalate to the user.
@@ -45,27 +47,30 @@ resolve later ones for free:
    reading is real signal, not noise.
 2. **PLATFORM_ERROR** — API 429/5xx, timeout. Not an agent bug — retry,
    don't diagnose the agent for it.
-3. **MISSING_TOOL_CALL / WRONG_TOOL_CALL** — most commonly `transfer_to_agent`
-   not fired when it should be (Officer never hands off) or fired too early
-   (Officer transfers before intake is genuinely complete). Highest-impact
-   category: everything downstream of a missing transfer fails too.
+3. **MISSING_TOOL_CALL / WRONG_TOOL_CALL** — most commonly `end_call` not
+   fired when it should be (Officer never wraps up) or fired too early
+   (Officer ends the call before intake is genuinely complete, or without
+   the Closing Message). Highest-impact category: everything downstream of
+   a missing/premature `end_call` fails too.
 4. **WRONG_PARAMS** — right tool, wrong arguments.
 5. **EXPECTATION_FAIL** — `success_condition` genuinely unmet. Read the
    failure transcript against `success_examples`/`failure_examples` to see
    which side the actual response landed closer to.
 6. **HALLUCINATION** — agent states something false or premature (e.g. the
-   Officer saying a claim is lodged — see `CONTEXT.md`, only the Supervisor
-   may say that). Trust violation, fix by removing the ungrounded claim from
-   the instruction, not by tightening the test.
-7. **CROSS_AGENT_CONTRADICTION** — a fix for one agent's test broke the
-   other's. See "Cross-agent regression check" above.
+   Officer saying a claim is "lodged" or mentioning a claim number — see
+   `CONTEXT.md`'s **Closing Message** entry, neither exists in this flow).
+   Trust violation, fix by removing the ungrounded claim from the
+   instruction, not by tightening the test.
+7. **RULE_CONTRADICTION** — a fix for one rule (e.g. `closing-condition`)
+   broke a test tied to a different rule (e.g. `multiple-claims`). See
+   "full-suite regression check" above.
 8. **TEXT/TONE_MISMATCH** — phrasing, verbosity, or persona drift. Lowest
    priority; often resolves itself once 3–7 are fixed.
 
 **When several tests fail in the same category:** diagnose the simplest one
 first — it gives a clean read for the harder ones. If 3+ tests fail for the
-same underlying reason (e.g. all missing the `transfer_to_agent` call), that
-is **one fix**, not three — don't diagnose each test independently.
+same underlying reason (e.g. all missing the `end_call` call), that is
+**one fix**, not three — don't diagnose each test independently.
 
 ## The Iteration Loop
 
@@ -80,8 +85,8 @@ is **one fix**, not three — don't diagnose each test independently.
 5. Apply the fix to `agent_configs/<Agent>.json` (instruction, tool config,
    or guardrail — whichever the category points to).
 6. `elevenlabs agents push` (or `--dry-run` first to preview).
-7. Re-run the fixed test 3x, **and** re-run the *other* agent's full suite
-   (cross-agent regression check).
+7. Re-run the fixed test 3x, **and** re-run the Officer's full suite
+   (full-suite regression check).
 8. Append an entry to `experiment_log.md` — what changed, why, which tests
    it was meant to fix, and the before/after result. Do this whether the fix
    worked or not; a documented failed attempt is what prevents ping-pong

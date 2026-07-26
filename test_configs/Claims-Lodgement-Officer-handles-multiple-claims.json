@@ -18,7 +18,7 @@
             "message": "Email alex@email.com, name Alex Wong. Oh, and I also have a property claim — storm damage at 88 George Street Brisbane on the 16th of June, same policy and contact details."
         }
     ],
-    "success_condition": "The user has provided details for both a vehicle claim and a property claim. The agent should acknowledge at least one of the claims is being processed, or transfer to the Claims Supervisor via transfer_to_agent for the first claim if it is genuinely complete, and NOT restart the conversation with a greeting. The agent should respond to the claim information provided, not ask for information already given.",
+    "success_condition": "The user has provided details for both a vehicle claim and a property claim. The agent should acknowledge at least one of the claims is being processed, and NOT restart the conversation with a greeting. The agent should respond to the claim information provided, not ask for information already given, and must not deliver the closing message or call end_call until it has confirmed there are no more claims to lodge.",
     "success_examples": [
         {
             "response": "Thank you, Alex. I've got your vehicle claim details. Let me confirm the spelling — A-L-E-X, W-O-N-G?",

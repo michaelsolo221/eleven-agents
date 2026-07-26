@@ -79,7 +79,9 @@ A separate workflow (`.github/workflows/pr-cleanup.yml`) archives `pr-*` branche
 
 ## Local↔Platform Sync Fields
 
-Fields like `attached_tests`, tool names, and `post_call_webhook_id` all have the same failure mode: the CLI can silently drop them on push (ADR 0002), and CI's `push`/`test` jobs are main-only, so nothing confirms live state pre-merge (see CI section above). The `pr-test` job (added for #36/#37) closes this gap for PRs — it pushes to an isolated branch, verifies, and tests pre-merge. Main-only checks (`push`/`test` jobs) still apply post-merge.
+Fields like `attached_tests`, tool names, `post_call_webhook_id`, and a `transfer_to_agent` tool's `condition` text all have the same failure mode: the CLI can silently drop them on push (ADR 0002), and CI's `push`/`test` jobs are main-only, so nothing confirms live state pre-merge (see CI section above). The `pr-test` job (added for #36/#37) closes this gap for PRs — it pushes to an isolated branch, verifies, and tests pre-merge. Main-only checks (`push`/`test` jobs) still apply post-merge.
+
+- `condition` is a sharper case of the drop than the others: the `transfer_to_agent` *tool itself* stays present (so a name-presence check passes), but the nested `condition` string silently reverts to a stale value. Discovered 2026-07-22 — the officer's transfer condition had been stuck on pre-2026-07-12 wording for over a week despite multiple local edits and pushes, because the CLI never actually sent that field. Fixed by a direct `PATCH /v1/convai/agents/{id}` with just `conversation_config.agent.prompt.tools` (same workaround as ADR 0002/0003's workflow PATCH). `scripts/verify-live-tools.py` now diffs local vs. live condition text per transfer target, not just tool presence.
 
 - Adding a **new** field of this kind: extend `scripts/validate-configs.py` (local cross-reference check) and `scripts/verify-live-tools.py` (live-state check) in the **same commit/PR** that introduces the field. Don't ship the field first and the check later — that gap is exactly how #29 and PR #35 happened.
 - **Definition of done** for any change touching a synced field: run `python3 scripts/verify-live-tools.py` (with `ELEVENLABS_API_KEY` set) yourself before calling the work finished. Don't wait for CI or a review to catch it — CI only checks this post-merge.
@@ -96,8 +98,8 @@ When delegating implementation:
 ## Debugging Failing Tests
 
 Full methodology: `docs/agents/debugging-guide.md`. Log every fix attempt
-(worked or not) in `experiment_log.md` — prevents ping-ponging fixes between
-the Officer and Supervisor.
+(worked or not) in `experiment_log.md` — prevents ping-ponging between
+conflicting fixes.
 
 1. Use ElevenLabs API directly to simulate conversation and see agent's actual response:
    ```bash
@@ -109,9 +111,10 @@ the Officer and Supervisor.
    test that fails ≥2/3 runs.
 4. **Fix order** (earlier categories cascade-fix later ones — see full guide
    for detail): eval-config error → platform error → missing/wrong tool call
-   (esp. `transfer_to_agent`) → wrong params → expectation fail →
-   hallucination → cross-agent contradiction → text/tone.
-5. **Cross-agent regression check is mandatory**: any instruction change to
-   either agent must be re-validated against BOTH agents' full test suites
-   before calling a fix done — the Officer/Supervisor handoff means a fix on
-   one side can silently break the other.
+   (esp. `end_call`) → wrong params → expectation fail → hallucination →
+   rule contradiction → text/tone.
+5. **Full-suite regression check is mandatory**: any instruction change must
+   be re-validated against the Officer's entire test suite before calling a
+   fix done — a change to one rule can silently break a test tied to a
+   different rule. (Single agent as of ADR 0005 — see `docs/agents/debugging-guide.md`
+   if a second agent is ever reintroduced.)

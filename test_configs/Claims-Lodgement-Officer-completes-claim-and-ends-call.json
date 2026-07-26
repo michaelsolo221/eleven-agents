@@ -1,6 +1,7 @@
 {
-    "name": "Claims Lodgement Officer transfers to supervisor when complete",
+    "name": "Claims Lodgement Officer completes claim and ends call",
     "type": "llm",
+    "conversation_initiation_source": "twilio",
     "chat_history": [
         {
             "role": "user",
@@ -28,14 +29,14 @@
             "message": "Yes that's right, J-O-H-N S-M-I-T-H."
         }
     ],
-    "success_condition": "All required vehicle claim fields have now been provided and the claimant has just confirmed the spelling of their name — nothing is missing. The agent should transfer the conversation to the Claims Supervisor (via the transfer_to_agent tool) rather than continuing to ask questions, declaring the claim lodged itself, or ending the call itself. The agent must not say anything implying the claim has already been lodged, and must not mention a claim number or an email confirmation — that is the supervisor's job, not the officer's.",
+    "success_condition": "All required vehicle claim fields have now been provided and the claimant has just confirmed the spelling of their name — nothing is missing. The agent should tell the claimant something equivalent to 'I've recorded your details. Our team will be in touch within two business days.' and then call end_call. The agent must NOT say the claim has been lodged, must NOT mention a claim number, and must NOT promise an email confirmation — none of that exists in this flow. The agent must not continue asking for fields that have already been provided, and must not mention transferring or a supervisor.",
     "success_examples": [
         {
-            "response": "Great, I have everything I need. Let me just get that confirmed for you.",
+            "response": "Thanks John, I've got everything I need. I've recorded your details, and our team will be in touch within two business days.",
             "type": "success"
         },
         {
-            "response": "Perfect, thank you John. One moment please.",
+            "response": "Perfect, thank you John. I've recorded all your details — our team will reach out to you within two business days. Take care.",
             "type": "success"
         }
     ],
@@ -45,7 +46,15 @@
             "type": "failure"
         },
         {
+            "response": "Your claim has been lodged. You'll receive your claim number by email shortly.",
+            "type": "failure"
+        },
+        {
             "response": "Could you please provide your policy number?",
+            "type": "failure"
+        },
+        {
+            "response": "One moment, let me transfer you to my supervisor.",
             "type": "failure"
         }
     ]

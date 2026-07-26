@@ -20,6 +20,7 @@ from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
 API_KEY = os.environ.get("ELEVENLABS_API_KEY")
+API_BASE = "https://api.elevenlabs.io"
 errors = []
 
 
@@ -34,7 +35,7 @@ def ok(msg):
 
 def fetch_live_agent(agent_id):
     req = urllib.request.Request(
-        f"https://api.elevenlabs.io/v1/convai/agents/{agent_id}",
+        f"{API_BASE}/v1/convai/agents/{agent_id}",
         headers={"xi-api-key": API_KEY},
     )
     with urllib.request.urlopen(req) as resp:
@@ -42,7 +43,7 @@ def fetch_live_agent(agent_id):
 
 
 def find_branch_id(agent_id, branch_name):
-    url = f"https://api.elevenlabs.io/v1/convai/agents/{agent_id}/branches"
+    url = f"{API_BASE}/v1/convai/agents/{agent_id}/branches"
     req = urllib.request.Request(url, headers={"xi-api-key": API_KEY})
     try:
         with urllib.request.urlopen(req) as resp:
@@ -75,6 +76,18 @@ def live_webhook_id(agent):
     return agent.get("platform_settings", {}).get("workspace_overrides", {}).get("webhooks", {}).get("post_call_webhook_id")
 
 
+def transfer_conditions(config):
+    """Map transfer target agent_id -> condition text, for every transfer_to_agent tool."""
+    prompt = config.get("conversation_config", {}).get("agent", {}).get("prompt", {})
+    conditions = {}
+    for tool in prompt.get("tools", []):
+        if tool.get("params", {}).get("system_tool_type") != "transfer_to_agent":
+            continue
+        for transfer in tool["params"].get("transfers", []):
+            conditions[transfer.get("agent_id")] = transfer.get("condition")
+    return conditions
+
+
 def attached_test_ids(config):
     tests = config.get("platform_settings", {}).get("testing", {}).get("attached_tests", [])
     return {t["test_id"] for t in tests if "test_id" in t}
@@ -94,6 +107,7 @@ for entry in agents_data.get("agents", []):
     expected_tools = local_tool_names(local)
     expected_webhook = local_webhook_id(local)
     expected_tests = attached_test_ids(local)
+    expected_conditions = transfer_conditions(local)
     if not expected_tools and not expected_webhook and not expected_tests:
         ok(f"{entry['config']}: no tools, webhook, or attached tests declared, nothing to verify")
         continue
@@ -103,7 +117,7 @@ for entry in agents_data.get("agents", []):
             if not branch_id:
                 fail(f"{entry['config']}: no branch named '{args.branch_name}' found")
                 continue
-            url = f"https://api.elevenlabs.io/v1/convai/agents/{entry['id']}?branch_id={branch_id}"
+            url = f"{API_BASE}/v1/convai/agents/{entry['id']}?branch_id={branch_id}"
             req = urllib.request.Request(url, headers={"xi-api-key": API_KEY})
             with urllib.request.urlopen(req) as resp:
                 live = json.loads(resp.read())
@@ -118,6 +132,7 @@ for entry in agents_data.get("agents", []):
     if expected_tools:
         actual_tools = live_tool_names(live)
         missing = expected_tools - actual_tools
+        extra = actual_tools - expected_tools
         if missing:
             msg = (
                 f"{entry['config']}: tool(s) {sorted(missing)} declared locally but "
@@ -126,8 +141,18 @@ for entry in agents_data.get("agents", []):
                 f" Patch the API directly to fix (see scripts/verify-live-tools.py docstring)."
             )
             fail(msg)
+        elif extra:
+            msg = (
+                f"{entry['config']}: tool(s) {sorted(extra)} present on "
+                f"{'branch ' + args.branch_name if args.branch_name else 'the live agent ' + entry['id']}"
+                f" but not declared locally — the CLI likely failed to remove a deleted tool during push"
+                f" (same silent-drop bug as missing tools, in reverse; see the 2026-07-26 transfer_to_agent"
+                f" incident in docs/adr/0005-retire-claims-supervisor-single-agent-lodgement.md)."
+                f" Patch the API directly to remove it."
+            )
+            fail(msg)
         else:
-            ok(f"{entry['config']}: all {len(expected_tools)} declared tool(s) present live")
+            ok(f"{entry['config']}: all {len(expected_tools)} declared tool(s) present live, no undeclared extras")
     if expected_webhook:
         live_wid = live_webhook_id(live)
         if live_wid != expected_webhook:
@@ -150,6 +175,22 @@ for entry in agents_data.get("agents", []):
             )
         else:
             ok(f"{entry['config']}: all {len(expected_tests)} attached test(s) present live")
+    if expected_conditions:
+        live_conditions = transfer_conditions(live)
+        mismatched = {
+            aid: cond for aid, cond in expected_conditions.items()
+            if live_conditions.get(aid) != cond
+        }
+        if mismatched:
+            target = f"branch {args.branch_name}" if args.branch_name else f"live agent {entry['id']}"
+            fail(
+                f"{entry['config']}: transfer_to_agent condition for target(s) "
+                f"{sorted(mismatched)} does not match {target} — the CLI can silently "
+                f"drop or stale this nested field on push even when the tool itself is "
+                f"present (see 2026-07-22 incident). Patch the API directly to fix."
+            )
+        else:
+            ok(f"{entry['config']}: all {len(expected_conditions)} transfer_to_agent condition(s) match live")
 
 print(f"\n{'='*40}")
 if errors:

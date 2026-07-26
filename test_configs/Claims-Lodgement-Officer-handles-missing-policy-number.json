@@ -1,6 +1,7 @@
 {
     "name": "Claims Lodgement Officer handles missing policy number",
     "type": "llm",
+    "conversation_initiation_source": "twilio",
     "chat_history": [
         {
             "role": "user",
@@ -13,14 +14,14 @@
             "message": "Registration DEF-456, crash yesterday on the M5. Email tom@email.com, name Tom Lee."
         }
     ],
-    "success_condition": "The user does not have their policy number. The agent should NOT keep asking for it. The agent should proceed with the available information — either continuing to collect remaining fields, or transferring to the Claims Supervisor via transfer_to_agent if everything else is genuinely complete (the supervisor will confirm the claim without the policy number, since policy number is best-effort).",
+    "success_condition": "The user does not have their policy number. The agent should NOT keep asking for it. The agent should proceed with the available information — either continuing to collect remaining fields (e.g. name spelling, incident location), or, if everything else is genuinely complete, delivering the closing message ('recorded your details... two business days') and calling end_call itself, since policy number is best-effort.",
     "success_examples": [
         {
-            "response": "No worries, we can look that up later. I've got your registration DEF-456, the crash on the M5, and your contact details. Let me confirm — T-O-M, L-E-E? I've lodged your claim.",
+            "response": "No worries, we can look that up later. I've got your registration DEF-456, the crash on the M5, and your contact details. Let me confirm — T-O-M, L-E-E?",
             "type": "success"
         },
         {
-            "response": "That's fine, we'll find your policy later. I have your vehicle details and contact info. I'll lodge the claim with what we have.",
+            "response": "That's fine, we'll find your policy later. I have your vehicle and contact details. Just to confirm the spelling of your name — is that T-O-M, L-E-E?",
             "type": "success"
         }
     ],

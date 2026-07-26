@@ -3,14 +3,8 @@
         {
             "config": "agent_configs/Claims-Lodgement-Officer.json",
             "id": "agent_0201kws9cya0fpna5k8vz7cy99d8",
-            "version_id": "agtvrsn_8701kx9xejexf69vbxx6b5172rz4",
+            "version_id": "agtvrsn_2701kyehs6kde6jt4msz134yz59x",
             "branch_id": "agtbrch_9101kws9cyzjf1htab6aqjr27fg7"
-        },
-        {
-            "config": "agent_configs/Claims-Lodgement-Supervisor.json",
-            "id": "agent_8101kx3drtdwfmqtv6085k716gsz",
-            "version_id": "agtvrsn_1401kx9xemp9fhv8nygevna704dy",
-            "branch_id": "agtbrch_2601kx3drzprexnbhb233av2hpvx"
         }
     ]
 }

@@ -76,18 +76,8 @@
             "type": "llm"
         },
         {
-            "config": "test_configs/Claims-Lodgement-Officer-transfers-to-supervisor-when-complete.json",
+            "config": "test_configs/Claims-Lodgement-Officer-completes-claim-and-ends-call.json",
             "id": "test_9501kx3eaqz6e9hr5xre4fb3mc93",
-            "type": "llm"
-        },
-        {
-            "config": "test_configs/Claims-Lodgement-Supervisor-catches-missing-field.json",
-            "id": "test_6801kx3ear77fw7a5xvh9vqs9ryv",
-            "type": "llm"
-        },
-        {
-            "config": "test_configs/Claims-Lodgement-Supervisor-confirms-when-complete.json",
-            "id": "test_1201kx3earfafg9tebhxzv3e9bwe",
             "type": "llm"
         },
         {
@@ -96,9 +86,9 @@
             "type": "llm"
         },
         {
-            "config": "test_configs/Claims-Lodgement-Supervisor-ends-call-after-lodgement.json",
-            "id": "test_7301kxa0z8xce1s8yafsxf1h28q6",
-            "type": "llm"
+            "config": "test_configs/Claims-Lodgement-Officer-does-not-close-with-missing-fields.json",
+            "type": "llm",
+            "id": "test_3001kyega5pzf11amm0v7b7xd6rj"
         }
     ]
 }
