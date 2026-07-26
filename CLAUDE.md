@@ -125,3 +125,15 @@ conflicting fixes.
    fix done — a change to one rule can silently break a test tied to a
    different rule. (Single agent as of ADR 0005 — see `docs/agents/debugging-guide.md`
    if a second agent is ever reintroduced.)
+## Python Server (`server/`)
+
+FastAPI post-call webhook receiver and email dispatch microservice hosted on Coolify.
+
+- **Toolchain**: Managed via `uv` (`requires-python = ">=3.13"`).
+- **Run server locally**: `uv run uvicorn server.main:app --reload`
+- **Run server tests**: `.venv/bin/pytest server/tests` or `uv run pytest server/tests`
+- **Security & Replay Defense**:
+  - Webhook signatures MUST be validated using `verify_signature` against `ElevenLabs-Signature` (`t=<ts>,v1=<hash>`).
+  - Replay window set to `TIMESTAMP_TOLERANCE_SECONDS = 300` (5 minutes).
+  - Always use `hmac.compare_digest` for constant-time hash comparison.
+  - Fail-closed security logic must log errors at `DEBUG`/`WARNING` level before returning `False`.
