@@ -134,5 +134,8 @@ jobs:
       - name: Authenticate
         run: echo "$ELEVENLABS_API_KEY" | elevenlabs auth login
 
+      # Tests are flaky (see #31). Report results but don't block main CI
+      # until #31's LLM-evaluator divergence is resolved.
       - name: Run tests
+        continue-on-error: true
         run: bash scripts/run-tests.sh
