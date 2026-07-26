@@ -1,10 +1,15 @@
 import hmac
 import time
 
+import pytest
 from fastapi.testclient import TestClient
 
 from server.main import app
-from server.security import TIMESTAMP_TOLERANCE_SECONDS, signed_message, verify_signature
+from server.security import (
+    TIMESTAMP_TOLERANCE_SECONDS,
+    signed_message,
+    verify_signature,
+)
 
 client = TestClient(app)
 TEST_SECRET = "test_webhook_secret_123"
@@ -14,17 +19,17 @@ def create_signature_header(
     payload: bytes, secret: str, timestamp: str | None = None
 ) -> str:
     timestamp = timestamp or str(int(time.time()))
-    sig = hmac.new(secret.encode("utf-8"), signed_message(timestamp, payload), "sha256").hexdigest()
+    msg = signed_message(timestamp, payload)
+    sig = hmac.new(secret.encode("utf-8"), msg, "sha256").hexdigest()
     return f"t={timestamp},v0={sig}"
 
 
-def test_health_check():
+def test_health_check() -> None:
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
 
-
-def test_verify_signature_unit():
+def test_verify_signature_unit() -> None:
     payload = b'{"event": "call_ended", "call_id": "123"}'
 
     # Valid signature
@@ -50,7 +55,7 @@ def test_verify_signature_unit():
     assert verify_signature(payload, "v0=abc123", TEST_SECRET) is False
 
 
-def test_verify_signature_rejects_expired_timestamp():
+def test_verify_signature_rejects_expired_timestamp() -> None:
     payload = b'{"event": "call_ended", "call_id": "123"}'
     expired_ts = str(int(time.time()) - TIMESTAMP_TOLERANCE_SECONDS - 1)
     sig_header = create_signature_header(payload, TEST_SECRET, timestamp=expired_ts)
@@ -58,7 +63,7 @@ def test_verify_signature_rejects_expired_timestamp():
     assert verify_signature(payload, sig_header, TEST_SECRET) is False
 
 
-def test_webhook_valid_signature(monkeypatch):
+def test_webhook_valid_signature(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("ELEVENLABS_WEBHOOK_SECRET", TEST_SECRET)
     payload = b'{"event": "call_ended", "data": "test"}'
     sig_header = create_signature_header(payload, TEST_SECRET)
@@ -72,7 +77,7 @@ def test_webhook_valid_signature(monkeypatch):
     assert response.json() == {"status": "received"}
 
 
-def test_webhook_invalid_signature(monkeypatch):
+def test_webhook_invalid_signature(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("ELEVENLABS_WEBHOOK_SECRET", TEST_SECRET)
     payload = b'{"event": "call_ended"}'
     bad_header = f"t={int(time.time())},v0=wrong_signature"
@@ -86,7 +91,7 @@ def test_webhook_invalid_signature(monkeypatch):
     assert response.json() == {"detail": "Invalid signature"}
 
 
-def test_webhook_missing_signature_header(monkeypatch):
+def test_webhook_missing_signature_header(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("ELEVENLABS_WEBHOOK_SECRET", TEST_SECRET)
     payload = b'{"event": "call_ended"}'
 
@@ -98,7 +103,7 @@ def test_webhook_missing_signature_header(monkeypatch):
     assert response.json() == {"detail": "Invalid signature"}
 
 
-def test_webhook_missing_secret(monkeypatch):
+def test_webhook_missing_secret(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.delenv("ELEVENLABS_WEBHOOK_SECRET", raising=False)
     payload = b'{"event": "call_ended"}'
     sig_header = create_signature_header(payload, TEST_SECRET)

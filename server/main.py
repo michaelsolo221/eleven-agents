@@ -1,4 +1,5 @@
 import os
+
 from fastapi import FastAPI, HTTPException, Request, status
 
 from server.security import verify_signature
@@ -7,12 +8,12 @@ app = FastAPI(title="ElevenLabs Webhook Receiver")
 
 
 @app.get("/health")
-async def health():
+async def health() -> dict[str, str]:
     return {"status": "ok"}
 
 
 @app.post("/api/webhooks/elevenlabs")
-async def elevenlabs_webhook(request: Request):
+async def elevenlabs_webhook(request: Request) -> dict[str, str]:
     secret = os.getenv("ELEVENLABS_WEBHOOK_SECRET")
     signature_header = request.headers.get("elevenlabs-signature")
     payload = await request.body()

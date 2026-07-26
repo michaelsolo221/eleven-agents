@@ -10,7 +10,7 @@ TIMESTAMP_TOLERANCE_SECONDS = 1800  # 30 min, per ElevenLabs' replay-attack guid
 
 def signed_message(timestamp: str, payload: bytes) -> bytes:
     """Builds the message ElevenLabs signs: "<timestamp>.<payload>"."""
-    return f"{timestamp}.".encode("utf-8") + payload
+    return f"{timestamp}.".encode() + payload
 
 
 def verify_signature(
