@@ -7,7 +7,7 @@ ElevenLabs conversational AI agent config repo. JSON configs in `agent_configs/`
 - ElevenLabs CLI v0.5.5 at `/opt/homebrew/bin/elevenlabs`. `ELEVENLABS_API_KEY` is set in the environment.
 - **Pre-push**: `make validate` (structural checks) then `make dry-run` (preview changes).
 - **Full CI can be run locally**: `make push` (deploy), `python3 scripts/verify-live-tools.py` (integrity), `make test` (18 LLM agent tests).
-- **Key Makefile targets**: `validate`, `dry-run`, `push`, `test`, `pull`, `list`. Run `make help` for the full list.
+- **Key Makefile targets**: `validate`, `dry-run`, `push`, `test`, `server-check`, `server-test`. Run `make help` for full list.
 
 ## Test Schema
 
@@ -77,6 +77,13 @@ Defined in `.github/workflows/agents.yml`. Four jobs:
 
 A separate workflow (`.github/workflows/pr-cleanup.yml`) archives `pr-*` branches when a PR is merged or closed.
 
+## Server (`server/`)
+
+FastAPI webhook receiver (+ future email dispatch), per ADR 0006. Dependency-managed with `uv`.
+
+- **Verify third-party wire formats against real docs, not just your own tests** — a test fixture built on the same wrong assumption as the code under test still passes. Discovered 2026-07-26: `security.py` parsed the ElevenLabs signature as `v1`; the real header uses `v0`. Tests stayed green because `test_security.py` built headers with the same wrong key — every real webhook call would have 401'd in production.
+- **HMAC checks need a replay/timestamp window, not just a valid-hash check.** `verify_signature` enforces `TIMESTAMP_TOLERANCE_SECONDS` (30 min) for this reason — keep it for any future signature verification added here.
+
 ## Local↔Platform Sync Fields
 
 Fields like `attached_tests`, tool names, `post_call_webhook_id`, and a `transfer_to_agent` tool's `condition` text all have the same failure mode: the CLI can silently drop them on push (ADR 0002), and CI's `push`/`test` jobs are main-only, so nothing confirms live state pre-merge (see CI section above). The `pr-test` job (added for #36/#37) closes this gap for PRs — it pushes to an isolated branch, verifies, and tests pre-merge. Main-only checks (`push`/`test` jobs) still apply post-merge.
@@ -118,3 +125,10 @@ conflicting fixes.
    fix done — a change to one rule can silently break a test tied to a
    different rule. (Single agent as of ADR 0005 — see `docs/agents/debugging-guide.md`
    if a second agent is ever reintroduced.)
+## Python Server (`server/`)
+
+FastAPI post-call webhook receiver and email dispatch microservice hosted on Coolify (`uv` toolchain, Python 3.13).
+
+- **Dev & Test**: `make server-check` (ruff + mypy strict) and `make server-test` (pytest).
+- **Local Server**: `cd server && uv run uvicorn main:app --reload`
+- **Security**: Validate HMAC signatures via `verify_signature` against `ElevenLabs-Signature` (`t=<ts>,v1=<hash>`) with `TIMESTAMP_TOLERANCE_SECONDS = 300` (5-min replay window) using `hmac.compare_digest`. Log fail-closed security events at `DEBUG`/`WARNING`.
