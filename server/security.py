@@ -5,7 +5,7 @@ import time
 
 logger = logging.getLogger(__name__)
 
-TIMESTAMP_TOLERANCE_SECONDS = 1800  # 30 min, per ElevenLabs' replay-attack guidance
+TIMESTAMP_TOLERANCE_SECONDS = 300  # 5 min, per ElevenLabs' replay-attack guidance
 
 
 def signed_message(timestamp: str, payload: bytes) -> bytes:

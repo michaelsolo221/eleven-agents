@@ -1,6 +1,8 @@
 import json
 import logging
 import os
+from collections.abc import AsyncGenerator
+from contextlib import asynccontextmanager
 from typing import Any
 
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request, status
@@ -10,7 +12,18 @@ from server.security import verify_signature
 
 logger = logging.getLogger(__name__)
 
-app = FastAPI(title="ElevenLabs Webhook Receiver")
+
+@asynccontextmanager
+async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
+    secret = os.getenv("ELEVENLABS_WEBHOOK_SECRET")
+    if not secret and os.getenv("TESTING") != "true":
+        msg = "ELEVENLABS_WEBHOOK_SECRET environment variable is missing"
+        logger.critical(msg)
+        raise RuntimeError(msg)
+    yield
+
+
+app = FastAPI(title="ElevenLabs Webhook Receiver", lifespan=lifespan)
 
 
 @app.get("/health")
