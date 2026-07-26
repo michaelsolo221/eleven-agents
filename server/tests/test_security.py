@@ -29,6 +29,7 @@ def test_health_check() -> None:
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
 
+
 def test_verify_signature_unit() -> None:
     payload = b'{"event": "call_ended", "call_id": "123"}'
 
@@ -65,7 +66,7 @@ def test_verify_signature_rejects_expired_timestamp() -> None:
 
 def test_webhook_valid_signature(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("ELEVENLABS_WEBHOOK_SECRET", TEST_SECRET)
-    payload = b'{"event": "call_ended", "data": "test"}'
+    payload = b'{"type": "post_call_transcription", "data": "test"}'
     sig_header = create_signature_header(payload, TEST_SECRET)
 
     response = client.post(
