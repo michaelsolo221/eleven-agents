@@ -77,6 +77,13 @@ Defined in `.github/workflows/agents.yml`. Four jobs:
 
 A separate workflow (`.github/workflows/pr-cleanup.yml`) archives `pr-*` branches when a PR is merged or closed.
 
+## Server (`server/`)
+
+FastAPI webhook receiver (+ future email dispatch), per ADR 0006. Dependency-managed with `uv`.
+
+- **Verify third-party wire formats against real docs, not just your own tests** — a test fixture built on the same wrong assumption as the code under test still passes. Discovered 2026-07-26: `security.py` parsed the ElevenLabs signature as `v1`; the real header uses `v0`. Tests stayed green because `test_security.py` built headers with the same wrong key — every real webhook call would have 401'd in production.
+- **HMAC checks need a replay/timestamp window, not just a valid-hash check.** `verify_signature` enforces `TIMESTAMP_TOLERANCE_SECONDS` (30 min) for this reason — keep it for any future signature verification added here.
+
 ## Local↔Platform Sync Fields
 
 Fields like `attached_tests`, tool names, `post_call_webhook_id`, and a `transfer_to_agent` tool's `condition` text all have the same failure mode: the CLI can silently drop them on push (ADR 0002), and CI's `push`/`test` jobs are main-only, so nothing confirms live state pre-merge (see CI section above). The `pr-test` job (added for #36/#37) closes this gap for PRs — it pushes to an isolated branch, verifies, and tests pre-merge. Main-only checks (`push`/`test` jobs) still apply post-merge.
