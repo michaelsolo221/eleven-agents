@@ -1,3 +1,7 @@
+import os
+
+os.environ["TESTING"] = "true"
+
 import hmac
 import time
 
@@ -28,6 +32,7 @@ def test_health_check() -> None:
     response = client.get("/health")
     assert response.status_code == 200
     assert response.json() == {"status": "ok"}
+
 
 def test_verify_signature_unit() -> None:
     payload = b'{"event": "call_ended", "call_id": "123"}'
@@ -65,7 +70,7 @@ def test_verify_signature_rejects_expired_timestamp() -> None:
 
 def test_webhook_valid_signature(monkeypatch: pytest.MonkeyPatch) -> None:
     monkeypatch.setenv("ELEVENLABS_WEBHOOK_SECRET", TEST_SECRET)
-    payload = b'{"event": "call_ended", "data": "test"}'
+    payload = b'{"type": "post_call_transcription", "data": "test"}'
     sig_header = create_signature_header(payload, TEST_SECRET)
 
     response = client.post(
@@ -115,3 +120,39 @@ def test_webhook_missing_secret(monkeypatch: pytest.MonkeyPatch) -> None:
     )
     assert response.status_code == 401
     assert response.json() == {"detail": "Invalid signature"}
+
+
+def test_lifespan_missing_secret(monkeypatch: pytest.MonkeyPatch) -> None:
+    import asyncio
+
+    from server.main import lifespan
+
+    async def run_lifespan() -> None:
+        async with lifespan(app):
+            pass
+
+    monkeypatch.delenv("ELEVENLABS_WEBHOOK_SECRET", raising=False)
+    monkeypatch.delenv("TESTING", raising=False)
+    with pytest.raises(
+        RuntimeError, match="ELEVENLABS_WEBHOOK_SECRET environment variable is missing"
+    ):
+        asyncio.run(run_lifespan())
+
+
+def test_lifespan_with_secret(
+    monkeypatch: pytest.MonkeyPatch, caplog: pytest.LogCaptureFixture
+) -> None:
+    import asyncio
+
+    from server.main import lifespan
+
+    async def run_lifespan() -> None:
+        async with lifespan(app):
+            pass
+
+    monkeypatch.setenv("ELEVENLABS_WEBHOOK_SECRET", TEST_SECRET)
+    with caplog.at_level("WARNING"):
+        asyncio.run(run_lifespan())
+    assert (
+        "ELEVENLABS_WEBHOOK_SECRET environment variable is not set" not in caplog.text
+    )
