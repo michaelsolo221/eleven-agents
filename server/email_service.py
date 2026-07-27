@@ -36,6 +36,15 @@ def send_claim_email(payload: dict[str, Any]) -> bool:
 
         resend.api_key = resend_api_key
 
+        notification_email = os.getenv("NOTIFICATION_EMAIL")
+        if not notification_email:
+            logger.warning(
+                "NOTIFICATION_EMAIL environment variable is not set; "
+                "email dispatch skipped for conversation_id=%s",
+                conversation_id,
+            )
+            return False
+
         analysis = d.get("analysis", {}) if isinstance(d.get("analysis"), dict) else {}
         metadata = d.get("metadata", {}) if isinstance(d.get("metadata"), dict) else {}
         data_col = (
@@ -106,13 +115,12 @@ def send_claim_email(payload: dict[str, Any]) -> bool:
                 reason = "Incomplete Claim Data"
             subject = f"[CGU FNOL - INCOMPLETE] Partial Claim Data - {reason}"
 
-        to_email = os.getenv("NOTIFICATION_EMAIL", "mike4lyf@gmail.com")
         html_content = render_email_html(payload)
 
         resend.Emails.send(
             {
                 "from": "onboarding@resend.dev",
-                "to": [to_email],
+                "to": [notification_email],
                 "subject": subject,
                 "html": html_content,
             }

@@ -1,0 +1,21 @@
+name: Setup ElevenLabs CLI
+description: Install and authenticate the ElevenLabs CLI
+inputs:
+  cli-version:
+    description: Version of @elevenlabs/cli to install
+    default: "0.5.5"
+  api-key:
+    description: ElevenLabs API key
+    required: true
+runs:
+  using: composite
+  steps:
+    - uses: actions/setup-node@v4
+      with:
+        node-version: '22'
+    - name: Install ElevenLabs CLI
+      shell: bash
+      run: npm install -g @elevenlabs/cli@${{ inputs.cli-version }}
+    - name: Authenticate
+      shell: bash
+      run: echo "${{ inputs.api-key }}" | elevenlabs auth login

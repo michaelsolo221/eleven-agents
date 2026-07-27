@@ -148,6 +148,7 @@ def test_send_claim_email_incomplete_subject(
     sample_payload: dict[str, Any], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("RESEND_API_KEY", "re_test_key_123")
+    monkeypatch.setenv("NOTIFICATION_EMAIL", "test_recipient@example.com")
     sample_payload["data"]["analysis"]["call_successful"] = False
     sample_payload["data"]["metadata"]["termination_reason"] = "unresponsive_caller"
 
@@ -182,12 +183,26 @@ def test_send_claim_email_missing_api_key(
     assert "RESEND_API_KEY environment variable is not set" in caplog.text
 
 
+def test_send_claim_email_missing_notification_email(
+    sample_payload: dict[str, Any],
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    monkeypatch.setenv("RESEND_API_KEY", "re_test_key_123")
+    monkeypatch.delenv("NOTIFICATION_EMAIL", raising=False)
+
+    success = send_claim_email(sample_payload)
+    assert success is False
+    assert "NOTIFICATION_EMAIL environment variable is not set" in caplog.text
+
+
 def test_send_claim_email_handles_exception_safely(
     sample_payload: dict[str, Any],
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     monkeypatch.setenv("RESEND_API_KEY", "re_test_key_123")
+    monkeypatch.setenv("NOTIFICATION_EMAIL", "test_recipient@example.com")
 
     def mock_send_fail(params: dict[str, Any]) -> dict[str, Any]:
         raise RuntimeError("Resend API service error")
@@ -240,6 +255,25 @@ def test_webhook_non_transcription_event_types(
     )
     assert res_empty.status_code == 200
     assert res_empty.json() == {"status": "ignored"}
+
+
+def test_webhook_rejects_oversized_body(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("ELEVENLABS_WEBHOOK_SECRET", TEST_SECRET)
+
+    payload = b'{"type": "post_call_transcription", "data": {}}'
+    sig_header = create_signature_header(payload, TEST_SECRET)
+
+    response = client.post(
+        "/api/webhooks/elevenlabs",
+        content=payload,
+        headers={
+            "ElevenLabs-Signature": sig_header,
+            "Content-Length": "3000000",
+        },
+    )
+    assert response.status_code == 413
 
 
 def test_webhook_post_call_transcription_dispatches(

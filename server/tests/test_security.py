@@ -10,7 +10,9 @@ from fastapi.testclient import TestClient
 
 from server.main import app
 from server.security import (
+    MAX_BODY_SIZE_BYTES,
     TIMESTAMP_TOLERANCE_SECONDS,
+    exceeds_max_body_size,
     signed_message,
     verify_signature,
 )
@@ -66,6 +68,13 @@ def test_verify_signature_rejects_expired_timestamp() -> None:
     sig_header = create_signature_header(payload, TEST_SECRET, timestamp=expired_ts)
 
     assert verify_signature(payload, sig_header, TEST_SECRET) is False
+
+
+def test_exceeds_max_body_size() -> None:
+    assert exceeds_max_body_size(None) is False
+    assert exceeds_max_body_size("not_a_number") is False
+    assert exceeds_max_body_size(str(MAX_BODY_SIZE_BYTES)) is False
+    assert exceeds_max_body_size(str(MAX_BODY_SIZE_BYTES + 1)) is True
 
 
 def test_webhook_valid_signature(monkeypatch: pytest.MonkeyPatch) -> None:

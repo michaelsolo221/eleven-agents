@@ -8,7 +8,7 @@ from typing import Any
 from fastapi import BackgroundTasks, FastAPI, HTTPException, Request, status
 
 from server.email_service import send_claim_email
-from server.security import verify_signature
+from server.security import exceeds_max_body_size, verify_signature
 
 logger = logging.getLogger(__name__)
 
@@ -36,6 +36,12 @@ async def health() -> dict[str, str]:
 async def elevenlabs_webhook(
     request: Request, background_tasks: BackgroundTasks
 ) -> dict[str, str]:
+    if exceeds_max_body_size(request.headers.get("content-length")):
+        raise HTTPException(
+            status_code=status.HTTP_413_CONTENT_TOO_LARGE,
+            detail="Payload too large",
+        )
+
     secret = os.getenv("ELEVENLABS_WEBHOOK_SECRET")
     signature_header = request.headers.get("elevenlabs-signature")
     payload_bytes = await request.body()

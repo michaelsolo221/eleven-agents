@@ -6,6 +6,21 @@ import time
 logger = logging.getLogger(__name__)
 
 TIMESTAMP_TOLERANCE_SECONDS = 1800  # 30 min, per ElevenLabs' replay-attack guidance
+MAX_BODY_SIZE_BYTES = 2_000_000  # 2 MB, generous for a transcript + analysis payload
+
+
+def exceeds_max_body_size(content_length: str | None) -> bool:
+    """Checks a request's Content-Length header against MAX_BODY_SIZE_BYTES.
+
+    A missing or non-numeric header is not treated as oversized here — this
+    is a cheap pre-read rejection, not a guarantee against a client that lies
+    about or omits Content-Length.
+    """
+    return (
+        content_length is not None
+        and content_length.isdigit()
+        and int(content_length) > MAX_BODY_SIZE_BYTES
+    )
 
 
 def signed_message(timestamp: str, payload: bytes) -> bytes:

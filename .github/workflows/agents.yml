@@ -29,10 +29,34 @@ jobs:
       - name: Check and test server (ruff, mypy, pytest)
         run: |
           cd server
-          uv sync
+          uv sync --frozen
           uv run ruff check .
           uv run mypy .
           uv run pytest
+
+      - name: Build and smoke-test the Docker image
+        run: |
+          set -euo pipefail
+          docker build -t webhook-smoke-test ./server
+          docker run -d --name webhook-smoke \
+            -p 8000:8000 \
+            -e ELEVENLABS_WEBHOOK_SECRET=ci-smoke-test-secret \
+            -e RESEND_API_KEY=re_ci_dummy \
+            -e NOTIFICATION_EMAIL=ci@example.com \
+            webhook-smoke-test
+          for i in $(seq 1 15); do
+            if curl -sf http://localhost:8000/health; then
+              echo "container healthy"; exit 0
+            fi
+            sleep 2
+          done
+          echo "::error::/health never became healthy"
+          docker logs webhook-smoke
+          exit 1
+
+      - name: Clean up smoke-test container
+        if: always()
+        run: docker rm -f webhook-smoke 2>/dev/null || true
 
   pr-test:
     name: Test PR branch
@@ -43,15 +67,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - uses: ./.github/actions/setup-elevenlabs-cli
         with:
-          node-version: '22'
-
-      - name: Install ElevenLabs CLI
-        run: npm install -g @elevenlabs/cli
-
-      - name: Authenticate
-        run: echo "$ELEVENLABS_API_KEY" | elevenlabs auth login
+          api-key: ${{ secrets.ELEVENLABS_API_KEY }}
 
       - name: Create PR branches
         env:
@@ -100,15 +118,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - uses: ./.github/actions/setup-elevenlabs-cli
         with:
-          node-version: '22'
-
-      - name: Install ElevenLabs CLI
-        run: npm install -g @elevenlabs/cli
-
-      - name: Authenticate
-        run: echo "$ELEVENLABS_API_KEY" | elevenlabs auth login
+          api-key: ${{ secrets.ELEVENLABS_API_KEY }}
 
       - name: Push agents
         run: elevenlabs agents push
@@ -124,15 +136,9 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - uses: actions/setup-node@v4
+      - uses: ./.github/actions/setup-elevenlabs-cli
         with:
-          node-version: '22'
-
-      - name: Install ElevenLabs CLI
-        run: npm install -g @elevenlabs/cli
-
-      - name: Authenticate
-        run: echo "$ELEVENLABS_API_KEY" | elevenlabs auth login
+          api-key: ${{ secrets.ELEVENLABS_API_KEY }}
 
       # Tests are flaky (see #31). Report results but don't block main CI
       # until #31's LLM-evaluator divergence is resolved.

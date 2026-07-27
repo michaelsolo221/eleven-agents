@@ -4,7 +4,7 @@ help: ## Show this help
 	@grep -E '^[a-zA-Z_-]+:.*?## .*$$' $(MAKEFILE_LIST) | sort | awk 'BEGIN {FS = ":.*?## "}; {printf "\033[36m%-15s\033[0m %s\n", $$1, $$2}'
 
 install: ## Install ElevenLabs CLI
-	npm install -g @elevenlabs/cli
+	npm install -g @elevenlabs/cli@0.5.5
 
 auth: ## Login to ElevenLabs
 	elevenlabs auth login
