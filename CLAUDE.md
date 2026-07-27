@@ -79,10 +79,13 @@ A separate workflow (`.github/workflows/pr-cleanup.yml`) archives `pr-*` branche
 
 ## Server (`server/`)
 
-FastAPI webhook receiver (+ future email dispatch), per ADR 0006. Dependency-managed with `uv`.
+FastAPI post-call webhook receiver and email dispatch microservice hosted on Coolify (`uv` toolchain, Python 3.13), per ADR 0006.
 
+- **Dev & Test**: `make server-check` (ruff + mypy strict) and `make server-test` (pytest).
+- **Local Server**: `cd server && uv run uvicorn main:app --reload`
 - **Verify third-party wire formats against real docs, not just your own tests** — a test fixture built on the same wrong assumption as the code under test still passes. Discovered 2026-07-26: `security.py` parsed the ElevenLabs signature as `v1`; the real header uses `v0`. Tests stayed green because `test_security.py` built headers with the same wrong key — every real webhook call would have 401'd in production.
-- **HMAC checks need a replay/timestamp window, not just a valid-hash check.** `verify_signature` enforces `TIMESTAMP_TOLERANCE_SECONDS` (30 min) for this reason — keep it for any future signature verification added here.
+- **Security — single source of truth for these values, don't restate them elsewhere in this file**: Validate HMAC signatures via `verify_signature` against `ElevenLabs-Signature` (`t=<ts>,v0=<hash>`) with `TIMESTAMP_TOLERANCE_SECONDS = 1800` (30-min replay window) using `hmac.compare_digest`. Log fail-closed security events at `DEBUG`/`WARNING`. (This file used to state these values twice, in two different sections, and the copies silently drifted apart — caught and reconciled during the PR #49 review.)
+- **Any change to `security.py`'s signature scheme or `TIMESTAMP_TOLERANCE_SECONDS` must be called out explicitly in the PR description with a reason.** It's a security-critical constant that's easy to change unintentionally (e.g. by copying a stale value from elsewhere) inside an unrelated feature PR — that's exactly what happened in PR #49, caught only by review, not CI.
 
 ## Local↔Platform Sync Fields
 
@@ -125,10 +128,7 @@ conflicting fixes.
    fix done — a change to one rule can silently break a test tied to a
    different rule. (Single agent as of ADR 0005 — see `docs/agents/debugging-guide.md`
    if a second agent is ever reintroduced.)
-## Python Server (`server/`)
 
-FastAPI post-call webhook receiver and email dispatch microservice hosted on Coolify (`uv` toolchain, Python 3.13).
+## Spec Precedence: Issues Override ADRs
 
-- **Dev & Test**: `make server-check` (ruff + mypy strict) and `make server-test` (pytest).
-- **Local Server**: `cd server && uv run uvicorn main:app --reload`
-- **Security**: Validate HMAC signatures via `verify_signature` against `ElevenLabs-Signature` (`t=<ts>,v0=<hash>`) with `TIMESTAMP_TOLERANCE_SECONDS = 1800` (30-min replay window) using `hmac.compare_digest`. Log fail-closed security events at `DEBUG`/`WARNING`.
+ADRs (`docs/adr/`) capture a point-in-time architectural decision; nothing re-verifies them against a downstream issue that narrows or changes scope. When an issue explicitly documents a scope change against an ADR — e.g. #45 cutting `ALERT`/`REDIRECT` dispositions from ADR 0006, or overriding ADR 0006's placeholder notification-email address — the issue text is authoritative. Don't flag the resulting code as an "ADR mismatch" bug; check the issue before treating an ADR/code divergence as a defect. (This distinction mattered in the PR #49 review: a standards check that only had ADR 0006, not issue #45, flagged the notification-email default as a violation when it was actually a correct, documented override.)

@@ -98,7 +98,7 @@ An HTTP microservice (hosted via Coolify) that receives and authenticates Eleven
 _Avoid_: Webhook listener, state service, backend proxy
 
 **Call Disposition Status**:
-The outcome classification assigned to a completed interaction (`COMPLETE`, `INCOMPLETE`, `ALERT`, `REDIRECT`). Explicitly prefixed in the email subject line to provide instant visibility to claims handlers.
+The outcome classification assigned to a completed interaction. ADR 0006 originally proposed four tags (`COMPLETE`, `INCOMPLETE`, `ALERT`, `REDIRECT`); only `COMPLETE`/`INCOMPLETE` are implemented (issue #45) since `end_call` has no structured reason parameter to drive `ALERT`/`REDIRECT` today. Explicitly prefixed in the email subject line to provide instant visibility to claims handlers.
 _Avoid_: Call outcome, status label, status tag
 
 **Claim Summary Email**:
