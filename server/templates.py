@@ -113,20 +113,24 @@ EMAIL_HTML_TEMPLATE = """<!DOCTYPE html>
     font-weight: 600;
   }
   .badge-grid {
-    display: grid;
-    grid-template-columns: 1fr 1fr;
-    gap: 12px;
+    display: block;
+    width: 100%;
   }
   .badge-card {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 12px;
     border: 1px solid #e5e7eb;
     border-radius: 6px;
     padding: 12px;
     background-color: #f9fafb;
   }
+  .badge-card:last-child {
+    margin-bottom: 0;
+  }
   .badge-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
+    display: block;
     margin-bottom: 4px;
   }
   .badge-name {
@@ -158,15 +162,21 @@ EMAIL_HTML_TEMPLATE = """<!DOCTYPE html>
     margin-top: 4px;
   }
   .transcript-container {
-    display: flex;
-    flex-direction: column;
-    gap: 12px;
+    display: block;
+    width: 100%;
   }
   .turn {
+    display: block;
+    width: 100%;
+    box-sizing: border-box;
+    margin-bottom: 12px;
     padding: 12px 16px;
     border-radius: 8px;
     font-size: 14px;
     line-height: 1.5;
+  }
+  .turn:last-child {
+    margin-bottom: 0;
   }
   .turn-caller {
     background-color: #eff6ff;
@@ -194,6 +204,8 @@ EMAIL_HTML_TEMPLATE = """<!DOCTYPE html>
   .turn-message {
     color: #1f2937;
     white-space: pre-wrap;
+    word-break: break-word;
+    overflow-wrap: break-word;
   }
   .summary-box {
     background-color: #fffbe0;
@@ -244,15 +256,16 @@ EMAIL_HTML_TEMPLATE = """<!DOCTYPE html>
   <!-- 2. Evaluation Audit Badges -->
   <div class="section">
     <div class="section-title">Quality & Evaluation Audit</div>
-    <div class="badge-grid">
+    <div class="badge-grid" style="display: block; width: 100%;">
       {% for item in eval_badges %}
-      <div class="badge-card">
-        <div class="badge-header">
+      <div class="badge-card" style="display: block; width: 100%;
+           box-sizing: border-box; margin-bottom: 12px;">
           <span class="badge-name">{{ item.name }}</span>
-          <span class="badge badge-{{ item.badge_class }}">{{ item.status }}</span>
+          <span class="badge badge-{{ item.badge_class }}"
+                style="margin-left: 8px;">{{ item.status }}</span>
         </div>
         {% if item.rationale %}
-        <div class="badge-rationale">{{ item.rationale }}</div>
+        <div class="badge-rationale" style="margin-top: 4px;">{{ item.rationale }}</div>
         {% endif %}
       </div>
       {% endfor %}
@@ -262,14 +275,16 @@ EMAIL_HTML_TEMPLATE = """<!DOCTYPE html>
   <!-- 3. Transcript Log -->
   <div class="section">
     <div class="section-title">Transcript Log</div>
-    <div class="transcript-container">
+    <div class="transcript-container" style="display: block; width: 100%;">
       {% for turn in transcript_turns %}
-      <div class="turn turn-{{ turn.role_class }}">
-        <div class="turn-meta">
+      <div class="turn turn-{{ turn.role_class }}" style="display: block;
+           width: 100%; box-sizing: border-box; margin-bottom: 12px;">
           {{ turn.role }}
           {% if turn.time %}<span class="turn-time">[{{ turn.time }}]</span>{% endif %}
         </div>
-        <div class="turn-message">{{ turn.message }}</div>
+        <div class="turn-message" style="white-space: pre-wrap;
+             word-break: break-word; overflow-wrap: break-word;"
+        >{{ turn.message }}</div>
       </div>
       {% endfor %}
     </div>
