@@ -131,4 +131,4 @@ FastAPI post-call webhook receiver and email dispatch microservice hosted on Coo
 
 - **Dev & Test**: `make server-check` (ruff + mypy strict) and `make server-test` (pytest).
 - **Local Server**: `cd server && uv run uvicorn main:app --reload`
-- **Security**: Validate HMAC signatures via `verify_signature` against `ElevenLabs-Signature` (`t=<ts>,v1=<hash>`) with `TIMESTAMP_TOLERANCE_SECONDS = 300` (5-min replay window) using `hmac.compare_digest`. Log fail-closed security events at `DEBUG`/`WARNING`.
+- **Security**: Validate HMAC signatures via `verify_signature` against `ElevenLabs-Signature` (`t=<ts>,v0=<hash>`) with `TIMESTAMP_TOLERANCE_SECONDS = 1800` (30-min replay window) using `hmac.compare_digest`. Log fail-closed security events at `DEBUG`/`WARNING`.

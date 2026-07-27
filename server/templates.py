@@ -288,6 +288,15 @@ env = Environment(
 )
 
 
+def _classify_result(res: Any) -> tuple[str, str]:
+    """Maps a raw evaluation-criterion result value to (status, badge_class)."""
+    if res in ("success", "pass", True, "PASS", "SUCCESS", "true"):
+        return "PASS", "pass"
+    if res in ("failure", "fail", False, "FAIL", "FAILURE", "false"):
+        return "FAIL", "fail"
+    return (str(res).upper() if res else "UNKNOWN"), "unknown"
+
+
 def render_email_html(data: dict[str, Any]) -> str:
     """
     Renders the post-call email report HTML using Jinja2 with autoescaping.
@@ -355,15 +364,7 @@ def render_email_html(data: dict[str, Any]) -> str:
                 res = crit_item
                 rationale = ""
 
-            if res in ("success", "pass", True, "PASS", "SUCCESS", "true"):
-                status = "PASS"
-                badge_class = "pass"
-            elif res in ("failure", "fail", False, "FAIL", "FAILURE", "false"):
-                status = "FAIL"
-                badge_class = "fail"
-            else:
-                status = str(res).upper() if res else "UNKNOWN"
-                badge_class = "unknown"
+            status, badge_class = _classify_result(res)
         else:
             status = "N/A"
             badge_class = "unknown"
@@ -390,15 +391,7 @@ def render_email_html(data: dict[str, Any]) -> str:
             res = crit_item
             rationale = ""
 
-        if res in ("success", "pass", True, "PASS", "SUCCESS", "true"):
-            status = "PASS"
-            badge_class = "pass"
-        elif res in ("failure", "fail", False, "FAIL", "FAILURE", "false"):
-            status = "FAIL"
-            badge_class = "fail"
-        else:
-            status = str(res).upper() if res else "UNKNOWN"
-            badge_class = "unknown"
+        status, badge_class = _classify_result(res)
 
         eval_badges.append(
             {
