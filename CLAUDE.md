@@ -79,7 +79,7 @@ A separate workflow (`.github/workflows/pr-cleanup.yml`) archives `pr-*` branche
 
 ## Server (`server/`)
 
-FastAPI post-call webhook receiver and email dispatch microservice hosted on Coolify (`uv` toolchain, Python 3.13), per ADR 0006.
+FastAPI post-call webhook receiver and email dispatch microservice hosted on Coolify (`uv` toolchain, Python 3.13), per ADR 0006. Full deployment runbook, Coolify UUIDs, and API trigger instructions live at `docs/server-coolify-deployment.md`.
 
 - **Dev & Test**: `make server-check` (ruff + mypy strict) and `make server-test` (pytest).
 - **Local Server**: `cd server && uv run uvicorn main:app --reload`

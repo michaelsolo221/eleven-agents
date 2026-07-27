@@ -32,6 +32,7 @@ async def health() -> dict[str, str]:
 
 
 @app.post("/api/webhooks/elevenlabs")
+@app.post("/webhook/post-call")
 async def elevenlabs_webhook(
     request: Request, background_tasks: BackgroundTasks
 ) -> dict[str, str]:

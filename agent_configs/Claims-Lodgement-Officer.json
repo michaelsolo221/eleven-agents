@@ -396,7 +396,7 @@
         ],
         "transcript_format": "json",
         "send_audio": false,
-        "post_call_webhook_id": "4dda02e3d69a49d5bf1b3cf25fc4759d"
+        "post_call_webhook_id": "c4579374dcc8475d90689dfc702995df"
       }
     },
     "testing": {
