@@ -13,7 +13,7 @@ This document describes the deployment architecture, configuration details, and 
 | **Project** | `fb-messenger` | Project UUID: `g8cgwcc0kgk0og4s0kokckw0` |
 | **Environment** | `production` | Environment UUID: `kwook4w4gwkko8g48gkko44w` |
 | **Application Name** | `eleven-agents-webhook` | Application UUID: `k4k417px3sezrd3wvvimygs2` |
-| **Configured FQDN** | `https://11-d.michael-lo.com` | Traefik reverse proxy endpoint |
+| **Configured FQDN** | `https://11-p.michael-lo.com` | Traefik reverse proxy endpoint |
 | **Base Directory** | `/server` | Root of Python `uv` app & Dockerfile |
 | **Exposed Port** | `8000` | FastAPI container application port |
 
@@ -63,7 +63,7 @@ The microservice includes a lightweight `/health` check endpoint that returns HT
 
 ```bash
 # Verify health directly against the server IP (with Host header)
-curl -k -H "Host: 11-d.michael-lo.com" https://163.192.27.254/health
+curl -k -H "Host: 11-p.michael-lo.com" https://163.192.27.254/health
 # Response: {"status":"ok"}
 ```
 
@@ -74,6 +74,6 @@ curl -k -H "Host: 11-d.michael-lo.com" https://163.192.27.254/health
 To route external webhooks (e.g. from ElevenLabs) to the Coolify server:
 
 * **Record Type**: `A`
-* **Host / Subdomain**: `11-d` (for `11-d.michael-lo.com`)
+* **Host / Subdomain**: `11-p` (for `11-p.michael-lo.com`)
 * **Target IP**: `163.192.27.254` (VPS Server IP)
-* **Live Webhook Endpoint**: `https://11-d.michael-lo.com/webhook/post-call`
+* **Live Webhook Endpoint**: `https://11-p.michael-lo.com/webhook/post-call`
