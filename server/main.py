@@ -23,12 +23,22 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
     yield
 
 
-app = FastAPI(title="ElevenLabs Webhook Receiver", lifespan=lifespan)
+app = FastAPI(
+    title="ElevenLabs Webhook Receiver", version="0.1.0", lifespan=lifespan
+)
 
 
 @app.get("/health")
 async def health() -> dict[str, str]:
     return {"status": "ok"}
+
+
+@app.get("/version")
+async def version() -> dict[str, str]:
+    return {
+        "git_sha": os.getenv("SOURCE_COMMIT", "unknown"),
+        "app_version": app.version,
+    }
 
 
 @app.post("/api/webhooks/elevenlabs")

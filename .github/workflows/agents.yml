@@ -37,22 +37,32 @@ jobs:
       - name: Build and smoke-test the Docker image
         run: |
           set -euo pipefail
-          docker build -t webhook-smoke-test ./server
+          docker build --build-arg SOURCE_COMMIT="$GITHUB_SHA" -t webhook-smoke-test ./server
           docker run -d --name webhook-smoke \
             -p 8000:8000 \
             -e ELEVENLABS_WEBHOOK_SECRET=ci-smoke-test-secret \
             -e RESEND_API_KEY=re_ci_dummy \
             -e NOTIFICATION_EMAIL=ci@example.com \
             webhook-smoke-test
+          healthy=false
           for i in $(seq 1 15); do
             if curl -sf http://localhost:8000/health; then
-              echo "container healthy"; exit 0
+              echo "container healthy"; healthy=true; break
             fi
             sleep 2
           done
-          echo "::error::/health never became healthy"
-          docker logs webhook-smoke
-          exit 1
+          if [ "$healthy" != "true" ]; then
+            echo "::error::/health never became healthy"
+            docker logs webhook-smoke
+            exit 1
+          fi
+          reported_sha=$(curl -sf http://localhost:8000/version | jq -r '.git_sha')
+          if [ "$reported_sha" != "$GITHUB_SHA" ]; then
+            echo "::error::/version reported git_sha=$reported_sha, expected $GITHUB_SHA"
+            docker logs webhook-smoke
+            exit 1
+          fi
+          echo "/version correctly reports $reported_sha"
 
       - name: Clean up smoke-test container
         if: always()

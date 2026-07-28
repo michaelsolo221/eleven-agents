@@ -70,6 +70,22 @@ def test_verify_signature_rejects_expired_timestamp() -> None:
     assert verify_signature(payload, sig_header, TEST_SECRET) is False
 
 
+def test_version_endpoint_unknown_sha(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.delenv("SOURCE_COMMIT", raising=False)
+
+    response = client.get("/version")
+    assert response.status_code == 200
+    assert response.json() == {"git_sha": "unknown", "app_version": "0.1.0"}
+
+
+def test_version_endpoint_with_sha(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setenv("SOURCE_COMMIT", "abc123")
+
+    response = client.get("/version")
+    assert response.status_code == 200
+    assert response.json() == {"git_sha": "abc123", "app_version": "0.1.0"}
+
+
 def test_exceeds_max_body_size() -> None:
     assert exceeds_max_body_size(None) is False
     assert exceeds_max_body_size("not_a_number") is False
