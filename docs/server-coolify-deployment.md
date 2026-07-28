@@ -67,6 +67,17 @@ curl -k -H "Host: 11-p.michael-lo.com" https://163.192.27.254/health
 # Response: {"status":"ok"}
 ```
 
+### Verifying Deployed Version
+
+`/version` reports the git commit and app version baked into the running image, so you can confirm a deploy actually picked up the latest push instead of trusting the dashboard:
+
+```bash
+curl https://11-p.michael-lo.com/version
+# Response: {"git_sha":"<commit sha>","app_version":"0.1.0"}
+```
+
+`git_sha` only populates if Coolify's **"Include Source Commit in Build"** toggle (per-application Advanced/General settings) is enabled — it's off by default to preserve Docker build caching. Without it, `git_sha` reports `"unknown"`. This is a one-time manual setting in the Coolify dashboard, not something the repo can set.
+
 ---
 
 ## 6. DNS Setup

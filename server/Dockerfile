@@ -27,6 +27,12 @@ FROM python:3.13-slim AS runtime
 
 WORKDIR /app
 
+# Populated by Coolify's SOURCE_COMMIT build-arg (requires "Include Source
+# Commit in Build" enabled in the app's Advanced settings) so /version can
+# report which commit is actually running.
+ARG SOURCE_COMMIT=unknown
+ENV SOURCE_COMMIT=$SOURCE_COMMIT
+
 # Install curl for healthcheck
 RUN apt-get update && \
     apt-get install -y --no-install-recommends curl && \
