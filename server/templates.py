@@ -260,6 +260,7 @@ EMAIL_HTML_TEMPLATE = """<!DOCTYPE html>
       {% for item in eval_badges %}
       <div class="badge-card" style="display: block; width: 100%;
            box-sizing: border-box; margin-bottom: 12px;">
+        <div class="badge-header" style="margin-bottom: 4px;">
           <span class="badge-name">{{ item.name }}</span>
           <span class="badge badge-{{ item.badge_class }}"
                 style="margin-left: 8px;">{{ item.status }}</span>
@@ -279,6 +280,7 @@ EMAIL_HTML_TEMPLATE = """<!DOCTYPE html>
       {% for turn in transcript_turns %}
       <div class="turn turn-{{ turn.role_class }}" style="display: block;
            width: 100%; box-sizing: border-box; margin-bottom: 12px;">
+        <div class="turn-meta">
           {{ turn.role }}
           {% if turn.time %}<span class="turn-time">[{{ turn.time }}]</span>{% endif %}
         </div>
