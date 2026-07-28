@@ -76,6 +76,14 @@ def live_webhook_id(agent):
     return agent.get("platform_settings", {}).get("workspace_overrides", {}).get("webhooks", {}).get("post_call_webhook_id")
 
 
+def local_webhook_events(config):
+    return config.get("platform_settings", {}).get("workspace_overrides", {}).get("webhooks", {}).get("events", [])
+
+
+def live_webhook_events(agent):
+    return agent.get("platform_settings", {}).get("workspace_overrides", {}).get("webhooks", {}).get("events", [])
+
+
 def transfer_conditions(config):
     """Map transfer target agent_id -> condition text, for every transfer_to_agent tool."""
     prompt = config.get("conversation_config", {}).get("agent", {}).get("prompt", {})
@@ -106,6 +114,7 @@ for entry in agents_data.get("agents", []):
     local = json.loads(config_path.read_text())
     expected_tools = local_tool_names(local)
     expected_webhook = local_webhook_id(local)
+    expected_events = local_webhook_events(local)
     expected_tests = attached_test_ids(local)
     expected_conditions = transfer_conditions(local)
     if not expected_tools and not expected_webhook and not expected_tests:
@@ -163,6 +172,17 @@ for entry in agents_data.get("agents", []):
             )
         else:
             ok(f"{entry['config']}: post_call_webhook_id matches live")
+    if expected_events:
+        live_events = live_webhook_events(live)
+        if set(live_events) != set(expected_events):
+            target = f"branch {args.branch_name}" if args.branch_name else f"live agent {entry['id']}"
+            fail(
+                f"{entry['config']}: webhooks.events mismatch on {target} — "
+                f"local: {sorted(expected_events)}, live: {sorted(live_events)} — "
+                f"same CLI silent-drop failure mode as post_call_webhook_id."
+            )
+        else:
+            ok(f"{entry['config']}: webhooks.events matches live")
     if expected_tests:
         live_tests = attached_test_ids(live)
         missing = expected_tests - live_tests
