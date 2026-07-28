@@ -37,6 +37,11 @@ jobs:
       - name: Build and smoke-test the Docker image
         run: |
           set -euo pipefail
+          fail() {
+            echo "::error::$1"
+            docker logs webhook-smoke
+            exit 1
+          }
           docker build --build-arg SOURCE_COMMIT="$GITHUB_SHA" -t webhook-smoke-test ./server
           docker run -d --name webhook-smoke \
             -p 8000:8000 \
@@ -52,15 +57,11 @@ jobs:
             sleep 2
           done
           if [ "$healthy" != "true" ]; then
-            echo "::error::/health never became healthy"
-            docker logs webhook-smoke
-            exit 1
+            fail "/health never became healthy"
           fi
           reported_sha=$(curl -sf http://localhost:8000/version | jq -r '.git_sha')
           if [ "$reported_sha" != "$GITHUB_SHA" ]; then
-            echo "::error::/version reported git_sha=$reported_sha, expected $GITHUB_SHA"
-            docker logs webhook-smoke
-            exit 1
+            fail "/version reported git_sha=$reported_sha, expected $GITHUB_SHA"
           fi
           echo "/version correctly reports $reported_sha"
 
