@@ -20,6 +20,19 @@ async def lifespan(app: FastAPI) -> AsyncGenerator[None]:
         msg = "ELEVENLABS_WEBHOOK_SECRET environment variable is missing"
         logger.critical(msg)
         raise RuntimeError(msg)
+
+    from_email = os.getenv("FROM_EMAIL")
+    if not from_email and os.getenv("TESTING") != "true":
+        msg = "FROM_EMAIL environment variable is missing"
+        logger.critical(msg)
+        raise RuntimeError(msg)
+
+    notification_email = os.getenv("NOTIFICATION_EMAIL")
+    if not notification_email and os.getenv("TESTING") != "true":
+        msg = "NOTIFICATION_EMAIL environment variable is missing"
+        logger.critical(msg)
+        raise RuntimeError(msg)
+
     yield
 
 

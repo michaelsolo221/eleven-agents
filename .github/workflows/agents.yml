@@ -47,6 +47,7 @@ jobs:
             -p 8000:8000 \
             -e ELEVENLABS_WEBHOOK_SECRET=ci-smoke-test-secret \
             -e RESEND_API_KEY=re_ci_dummy \
+            -e FROM_EMAIL=noreply@example.com \
             -e NOTIFICATION_EMAIL=ci@example.com \
             webhook-smoke-test
           healthy=false
