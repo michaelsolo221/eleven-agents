@@ -345,6 +345,34 @@ def test_lifespan_requires_from_email(
             pass
 
 
+def test_send_claim_email_missing_from_email(
+    sample_payload: dict[str, Any],
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    monkeypatch.setenv("RESEND_API_KEY", "re_test_key_123")
+    monkeypatch.delenv("FROM_EMAIL", raising=False)
+    monkeypatch.setenv("NOTIFICATION_EMAIL", "test_recipient@example.com")
+
+    success = send_claim_email(sample_payload)
+    assert success is False
+    assert "FROM_EMAIL environment variable is not set" in caplog.text
+
+
+def test_send_claim_email_missing_notification_email(
+    sample_payload: dict[str, Any],
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    monkeypatch.setenv("RESEND_API_KEY", "re_test_key_123")
+    monkeypatch.setenv("FROM_EMAIL", "claims@example.com")
+    monkeypatch.delenv("NOTIFICATION_EMAIL", raising=False)
+
+    success = send_claim_email(sample_payload)
+    assert success is False
+    assert "NOTIFICATION_EMAIL environment variable is not set" in caplog.text
+
+
 def test_lifespan_requires_notification_email(
     monkeypatch: pytest.MonkeyPatch,
 ) -> None:

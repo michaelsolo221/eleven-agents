@@ -109,9 +109,23 @@ def send_claim_email(payload: dict[str, Any]) -> bool:
         html_content = render_email_html(payload)
 
         from_email = os.getenv("FROM_EMAIL")
+        if not from_email:
+            logger.warning(
+                "FROM_EMAIL environment variable is not set; "
+                "email dispatch skipped for conversation_id=%s",
+                conversation_id,
+            )
+            return False
+
         notification_email = os.getenv("NOTIFICATION_EMAIL")
-        assert from_email is not None
-        assert notification_email is not None
+        if not notification_email:
+            logger.warning(
+                "NOTIFICATION_EMAIL environment variable is not set; "
+                "email dispatch skipped for conversation_id=%s",
+                conversation_id,
+            )
+            return False
+
         to_emails = [
             addr.strip()
             for addr in notification_email.split(",")
