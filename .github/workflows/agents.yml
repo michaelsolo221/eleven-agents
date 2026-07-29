@@ -32,6 +32,12 @@ jobs:
         id: changes
         uses: dorny/paths-filter@v3
         with:
+          # Empty token forces local git-diff detection instead of the
+          # GitHub REST API. The default GITHUB_TOKEN here lacks
+          # `pull-requests: read`, so the API path 403s ("Resource not
+          # accessible by integration") on pull_request events; git mode
+          # works off the fetch-depth: 0 checkout above instead.
+          token: ''
           filters: |
             agents:
               - 'agent_configs/**'
