@@ -37,6 +37,14 @@ jobs:
           # `pull-requests: read`, so the API path 403s ("Resource not
           # accessible by integration") on pull_request events; git mode
           # works off the fetch-depth: 0 checkout above instead.
+          #
+          # With an empty token, paths-filter's own PR-base auto-detection
+          # is disabled too (its README: the `base` input "is ignored ...
+          # unless token is set to an empty string") — so `base` must be
+          # pinned explicitly here, or PR runs would silently fall back to
+          # an unspecified default instead of diffing against the real PR
+          # base branch.
+          base: ${{ github.event.pull_request.base.sha || github.event.before }}
           token: ''
           filters: |
             agents:
