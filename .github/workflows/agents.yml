@@ -202,3 +202,29 @@ jobs:
       - name: Run tests
         continue-on-error: true
         run: bash scripts/run-tests.sh
+
+  deploy-server:
+    name: Deploy server to Coolify
+    needs: validate
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && needs.validate.outputs.server_changed == 'true'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    # Serializes CI-triggered deploys so two server/** pushes landing close
+    # together can't both POST /deploy concurrently — one runs, the next
+    # queues rather than racing it. Doesn't cover a manual dashboard deploy
+    # overlapping with CI, which is what the script's ancestor check (not
+    # strict equality) still exists to handle.
+    concurrency:
+      group: deploy-server-coolify
+      cancel-in-progress: false
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          # deploy-and-verify-coolify.py's ancestor check (git merge-base
+          # --is-ancestor) needs full history, not just the pushed commit.
+          fetch-depth: 0
+
+      - name: Deploy and verify Coolify
+        env:
+          COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+        run: python3 scripts/deploy-and-verify-coolify.py
