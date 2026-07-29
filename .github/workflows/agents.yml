@@ -13,20 +13,49 @@ jobs:
   validate:
     name: Validate configs
     runs-on: ubuntu-latest
+    outputs:
+      agents_changed: ${{ steps.changes.outputs.agents }}
+      server_changed: ${{ steps.changes.outputs.server }}
     steps:
       - uses: actions/checkout@v4
+        with:
+          # dorny/paths-filter (below) diffs against the base/previous commit
+          # using local git history; a shallow (depth-1) checkout won't have
+          # that commit present. Same requirement as
+          # scripts/deploy-and-verify-coolify.py's ancestor check (ADR 0007).
+          fetch-depth: 0
 
       - name: Validate configs
         run: python3 scripts/validate-configs.py
+
+      - name: Detect changed paths
+        id: changes
+        uses: dorny/paths-filter@v3
+        with:
+          filters: |
+            agents:
+              - 'agent_configs/**'
+              - 'tests.json'
+              - 'test_configs/**'
+              - 'agents.json'
+              - 'scripts/**'
+              - '.github/workflows/agents.yml'
+            server:
+              - 'server/**'
+              - '.github/workflows/agents.yml'
+
       - name: Set up Python
+        if: steps.changes.outputs.server == 'true'
         uses: actions/setup-python@v5
         with:
           python-version: '3.13'
 
       - name: Install uv
+        if: steps.changes.outputs.server == 'true'
         uses: astral-sh/setup-uv@v5
 
       - name: Check and test server (ruff, mypy, pytest)
+        if: steps.changes.outputs.server == 'true'
         run: |
           cd server
           uv sync --frozen
@@ -35,6 +64,7 @@ jobs:
           uv run pytest
 
       - name: Build and smoke-test the Docker image
+        if: steps.changes.outputs.server == 'true'
         run: |
           set -euo pipefail
           fail() {
@@ -66,13 +96,13 @@ jobs:
           echo "/version correctly reports $reported_sha"
 
       - name: Clean up smoke-test container
-        if: always()
+        if: always() && steps.changes.outputs.server == 'true'
         run: docker rm -f webhook-smoke 2>/dev/null || true
 
   pr-test:
     name: Test PR branch
     needs: validate
-    if: github.event_name == 'pull_request'
+    if: github.event_name == 'pull_request' && needs.validate.outputs.agents_changed == 'true'
     runs-on: ubuntu-latest
     timeout-minutes: 10
     steps:
@@ -124,7 +154,7 @@ jobs:
   push:
     name: Push agents
     needs: validate
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && needs.validate.outputs.agents_changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
@@ -141,8 +171,8 @@ jobs:
 
   test:
     name: Run agent tests
-    needs: push
-    if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+    needs: [push, validate]
+    if: github.ref == 'refs/heads/main' && github.event_name == 'push' && needs.validate.outputs.agents_changed == 'true'
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v4
