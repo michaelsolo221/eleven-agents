@@ -53,7 +53,16 @@ jobs:
               - 'tests.json'
               - 'test_configs/**'
               - 'agents.json'
-              - 'scripts/**'
+              # Explicit list, not 'scripts/**' — that wildcard also matches
+              # non-agent ops scripts (e.g. scripts/deploy-and-verify-coolify.py),
+              # which would otherwise trigger pr-test's "Run tests" step and
+              # burn real, billed ElevenLabs usage for unrelated changes
+              # (see issue #59). Add new agent-related scripts here explicitly.
+              - 'scripts/archive-pr-branches.py'
+              - 'scripts/run-tests.sh'
+              - 'scripts/test-pr-branch.py'
+              - 'scripts/validate-configs.py'
+              - 'scripts/verify-live-tools.py'
               - '.github/workflows/agents.yml'
             server:
               - 'server/**'
