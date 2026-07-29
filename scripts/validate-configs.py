@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Local config validation for CI. Catches structural issues without deploying."""
 import json
+import re
 import sys
 from pathlib import Path
 
@@ -128,6 +129,32 @@ for entry in agent_list:
         fail(f"{entry['config']}: attached_tests and referenced_tests_ids disagree on {sorted(mismatch)}")
 if len(errors) == errors_before:
     ok("all attached_tests entries resolve to tests.json")
+
+# --- 7. Check webhook configuration integrity ---
+print("\nWebhook configuration check")
+WEBHOOK_ID_RE = re.compile(r"^[0-9a-f]{32}$")
+errors_before = len(errors)
+for entry in agent_list:
+    config_path = ROOT / entry["config"]
+    if not config_path.exists():
+        continue
+    data = json.loads(config_path.read_text())
+    webhooks = data.get("platform_settings", {}).get("workspace_overrides", {}).get("webhooks", {})
+    if not webhooks:
+        continue
+    webhook_id = webhooks.get("post_call_webhook_id")
+    if not webhook_id or not isinstance(webhook_id, str):
+        fail(f"{entry['config']}: webhooks block present but 'post_call_webhook_id' is missing or empty")
+    elif not WEBHOOK_ID_RE.match(webhook_id):
+        fail(
+            f"{entry['config']}: post_call_webhook_id '{webhook_id}' doesn't look like a real "
+            "ElevenLabs webhook ID (expected 32 lowercase hex chars) — check for a placeholder or typo"
+        )
+    events = webhooks.get("events")
+    if not isinstance(events, list) or not events:
+        fail(f"{entry['config']}: webhooks.events must be a non-empty array")
+if len(errors) == errors_before:
+    ok("all webhooks entries are well-formed")
 
 # --- Summary ---
 print(f"\n{'='*40}")
