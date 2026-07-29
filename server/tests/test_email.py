@@ -2,6 +2,7 @@ import json
 from typing import Any
 
 import pytest
+from fastapi import FastAPI
 from fastapi.testclient import TestClient
 
 from server.email_service import send_claim_email
@@ -123,6 +124,7 @@ def test_send_claim_email_complete_subject(
     sample_payload: dict[str, Any], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("RESEND_API_KEY", "re_test_key_123")
+    monkeypatch.setenv("FROM_EMAIL", "claims@example.com")
     monkeypatch.setenv("NOTIFICATION_EMAIL", "test_recipient@example.com")
 
     sent_emails: list[dict[str, Any]] = []
@@ -139,7 +141,7 @@ def test_send_claim_email_complete_subject(
 
     email = sent_emails[0]
     assert email["to"] == ["test_recipient@example.com"]
-    assert email["from"] == "onboarding@resend.dev"
+    assert email["from"] == "claims@example.com"
     assert email["subject"] == "[CGU FNOL - COMPLETE] Vehicle Claim - Jane Doe"
     assert "conv_test_12345" in email["html"]
 
@@ -148,6 +150,7 @@ def test_send_claim_email_incomplete_subject(
     sample_payload: dict[str, Any], monkeypatch: pytest.MonkeyPatch
 ) -> None:
     monkeypatch.setenv("RESEND_API_KEY", "re_test_key_123")
+    monkeypatch.setenv("FROM_EMAIL", "claims@example.com")
     monkeypatch.setenv("NOTIFICATION_EMAIL", "test_recipient@example.com")
     sample_payload["data"]["analysis"]["call_successful"] = False
     sample_payload["data"]["metadata"]["termination_reason"] = "unresponsive_caller"
@@ -183,25 +186,13 @@ def test_send_claim_email_missing_api_key(
     assert "RESEND_API_KEY environment variable is not set" in caplog.text
 
 
-def test_send_claim_email_missing_notification_email(
-    sample_payload: dict[str, Any],
-    monkeypatch: pytest.MonkeyPatch,
-    caplog: pytest.LogCaptureFixture,
-) -> None:
-    monkeypatch.setenv("RESEND_API_KEY", "re_test_key_123")
-    monkeypatch.delenv("NOTIFICATION_EMAIL", raising=False)
-
-    success = send_claim_email(sample_payload)
-    assert success is False
-    assert "NOTIFICATION_EMAIL environment variable is not set" in caplog.text
-
-
 def test_send_claim_email_handles_exception_safely(
     sample_payload: dict[str, Any],
     monkeypatch: pytest.MonkeyPatch,
     caplog: pytest.LogCaptureFixture,
 ) -> None:
     monkeypatch.setenv("RESEND_API_KEY", "re_test_key_123")
+    monkeypatch.setenv("FROM_EMAIL", "claims@example.com")
     monkeypatch.setenv("NOTIFICATION_EMAIL", "test_recipient@example.com")
 
     def mock_send_fail(params: dict[str, Any]) -> dict[str, Any]:
@@ -302,3 +293,72 @@ def test_webhook_post_call_transcription_dispatches(
     assert response.json() == {"status": "received"}
     assert len(dispatched_payloads) == 1
     assert dispatched_payloads[0]["data"]["conversation_id"] == "conv_test_12345"
+
+
+def test_send_claim_email_multiple_recipients(
+    sample_payload: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("RESEND_API_KEY", "re_test_key_123")
+    monkeypatch.setenv("FROM_EMAIL", "claims@example.com")
+    monkeypatch.setenv(
+        "NOTIFICATION_EMAIL",
+        "  primary@example.com , secondary@example.com, third@example.com  ",
+    )
+
+    sent_emails: list[dict[str, Any]] = []
+
+    def mock_send(params: dict[str, Any]) -> dict[str, Any]:
+        sent_emails.append(params)
+        return {"id": "msg_multirecipient"}
+
+    monkeypatch.setattr("resend.Emails.send", mock_send)
+
+    success = send_claim_email(sample_payload)
+    assert success is True
+    assert len(sent_emails) == 1
+
+    email = sent_emails[0]
+    assert email["to"] == [
+        "primary@example.com",
+        "secondary@example.com",
+        "third@example.com",
+    ]
+    assert email["from"] == "claims@example.com"
+
+
+def test_lifespan_requires_from_email(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("ELEVENLABS_WEBHOOK_SECRET", TEST_SECRET)
+    monkeypatch.delenv("FROM_EMAIL", raising=False)
+    monkeypatch.setenv("NOTIFICATION_EMAIL", "admin@example.com")
+    monkeypatch.delenv("TESTING", raising=False)
+
+    from server.main import lifespan
+
+    fresh_app = FastAPI(
+        title="ElevenLabs Webhook Receiver", version="0.1.0", lifespan=lifespan
+    )
+
+    with pytest.raises(RuntimeError, match="FROM_EMAIL"):
+        with TestClient(fresh_app):
+            pass
+
+
+def test_lifespan_requires_notification_email(
+    monkeypatch: pytest.MonkeyPatch,
+) -> None:
+    monkeypatch.setenv("ELEVENLABS_WEBHOOK_SECRET", TEST_SECRET)
+    monkeypatch.setenv("FROM_EMAIL", "claims@example.com")
+    monkeypatch.delenv("NOTIFICATION_EMAIL", raising=False)
+    monkeypatch.delenv("TESTING", raising=False)
+
+    from server.main import lifespan
+
+    fresh_app = FastAPI(
+        title="ElevenLabs Webhook Receiver", version="0.1.0", lifespan=lifespan
+    )
+
+    with pytest.raises(RuntimeError, match="NOTIFICATION_EMAIL"):
+        with TestClient(fresh_app):
+            pass

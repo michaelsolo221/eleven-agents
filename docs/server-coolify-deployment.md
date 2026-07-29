@@ -34,7 +34,8 @@ The following secrets are managed within Coolify environment variables (`PATCH /
 
 * `ELEVENLABS_WEBHOOK_SECRET`: Secret key used to verify incoming `ElevenLabs-Signature` headers (`v0` scheme, 30-minute timestamp tolerance).
 * `RESEND_API_KEY`: API key for delivering HTML email notifications via the Resend API.
-* `NOTIFICATION_EMAIL`: Recipient email address for post-call summaries and transcripts.
+* `FROM_EMAIL`: Sender address for Resend email notifications. Must be a verified domain in Resend (no sandbox fallback).
+* `NOTIFICATION_EMAIL`: Comma-separated list of recipient email addresses for post-call summaries and transcripts.
 
 ---
 

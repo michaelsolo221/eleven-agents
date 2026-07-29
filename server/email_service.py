@@ -36,15 +36,6 @@ def send_claim_email(payload: dict[str, Any]) -> bool:
 
         resend.api_key = resend_api_key
 
-        notification_email = os.getenv("NOTIFICATION_EMAIL")
-        if not notification_email:
-            logger.warning(
-                "NOTIFICATION_EMAIL environment variable is not set; "
-                "email dispatch skipped for conversation_id=%s",
-                conversation_id,
-            )
-            return False
-
         analysis = d.get("analysis", {}) if isinstance(d.get("analysis"), dict) else {}
         metadata = d.get("metadata", {}) if isinstance(d.get("metadata"), dict) else {}
         data_col = (
@@ -117,10 +108,20 @@ def send_claim_email(payload: dict[str, Any]) -> bool:
 
         html_content = render_email_html(payload)
 
+        from_email = os.getenv("FROM_EMAIL")
+        notification_email = os.getenv("NOTIFICATION_EMAIL")
+        assert from_email is not None
+        assert notification_email is not None
+        to_emails = [
+            addr.strip()
+            for addr in notification_email.split(",")
+            if addr.strip()
+        ]
+
         resend.Emails.send(
             {
-                "from": "onboarding@resend.dev",
-                "to": [notification_email],
+                "from": from_email,
+                "to": to_emails,
                 "subject": subject,
                 "html": html_content,
             }
