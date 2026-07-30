@@ -10,6 +10,15 @@ the API does persist these correctly, so the bug is in the CLI's request
 serialization, not the API. Until that's fixed upstream, this script closes
 the gap: it re-fetches each agent from the live API after push and fails loudly
 if a locally-declared tool didn't make it across.
+
+Always fetches by branch tip (defaulting to "Main", every agent's permanent
+production branch), never the unqualified GET /v1/convai/agents/{id}. That
+unqualified form was found (2026-07-29, issue #55) to reflect draft/in-progress
+edits rather than the actually-committed version real conversations run
+against — it gave a false "matches live" for post_call_webhook_id right after
+a push whose committed version still held the stale value, and only a
+follow-up dashboard commit actually fixed it. Fetching by branch_id returns the
+branch's last *committed* version, which is what a real call actually uses.
 """
 import argparse
 import json
@@ -31,15 +40,6 @@ def fail(msg):
 
 def ok(msg):
     print(f"  ✓ {msg}")
-
-
-def fetch_live_agent(agent_id):
-    req = urllib.request.Request(
-        f"{API_BASE}/v1/convai/agents/{agent_id}",
-        headers={"xi-api-key": API_KEY},
-    )
-    with urllib.request.urlopen(req) as resp:
-        return json.loads(resp.read())
 
 
 def find_branch_id(agent_id, branch_name):
@@ -106,7 +106,11 @@ if not API_KEY:
 
 agents_data = json.loads((ROOT / "agents.json").read_text())
 parser = argparse.ArgumentParser(description=__doc__)
-parser.add_argument("--branch-name", help="Check a specific branch instead of the default live agent")
+parser.add_argument(
+    "--branch-name",
+    default="Main",
+    help="Branch to check (defaults to 'Main', every agent's permanent production branch)",
+)
 args = parser.parse_args()
 
 for entry in agents_data.get("agents", []):
@@ -120,23 +124,18 @@ for entry in agents_data.get("agents", []):
     if not expected_tools and not expected_webhook and not expected_tests:
         ok(f"{entry['config']}: no tools, webhook, or attached tests declared, nothing to verify")
         continue
+    target = f"branch '{args.branch_name}' of agent {entry['id']}"
     try:
-        if args.branch_name:
-            branch_id = find_branch_id(entry["id"], args.branch_name)
-            if not branch_id:
-                fail(f"{entry['config']}: no branch named '{args.branch_name}' found")
-                continue
-            url = f"{API_BASE}/v1/convai/agents/{entry['id']}?branch_id={branch_id}"
-            req = urllib.request.Request(url, headers={"xi-api-key": API_KEY})
-            with urllib.request.urlopen(req) as resp:
-                live = json.loads(resp.read())
-        else:
-            live = fetch_live_agent(entry["id"])
+        branch_id = find_branch_id(entry["id"], args.branch_name)
+        if not branch_id:
+            fail(f"{entry['config']}: no branch named '{args.branch_name}' found")
+            continue
+        url = f"{API_BASE}/v1/convai/agents/{entry['id']}?branch_id={branch_id}"
+        req = urllib.request.Request(url, headers={"xi-api-key": API_KEY})
+        with urllib.request.urlopen(req) as resp:
+            live = json.loads(resp.read())
     except Exception as e:
-        if args.branch_name:
-            fail(f"{entry['config']}: could not fetch branch '{args.branch_name}' for agent {entry['id']} — {e}")
-        else:
-            fail(f"{entry['config']}: could not fetch live agent {entry['id']} — {e}")
+        fail(f"{entry['config']}: could not fetch {target} — {e}")
         continue
     if expected_tools:
         actual_tools = live_tool_names(live)
@@ -145,7 +144,7 @@ for entry in agents_data.get("agents", []):
         if missing:
             msg = (
                 f"{entry['config']}: tool(s) {sorted(missing)} declared locally but "
-                f"missing from {'branch ' + args.branch_name if args.branch_name else 'the live agent ' + entry['id']}"
+                f"missing from {target}"
                 f" after push — the CLI likely dropped them silently during push."
                 f" Patch the API directly to fix (see scripts/verify-live-tools.py docstring)."
             )
@@ -153,7 +152,7 @@ for entry in agents_data.get("agents", []):
         elif extra:
             msg = (
                 f"{entry['config']}: tool(s) {sorted(extra)} present on "
-                f"{'branch ' + args.branch_name if args.branch_name else 'the live agent ' + entry['id']}"
+                f"{target}"
                 f" but not declared locally — the CLI likely failed to remove a deleted tool during push"
                 f" (same silent-drop bug as missing tools, in reverse; see the 2026-07-26 transfer_to_agent"
                 f" incident in docs/adr/0005-retire-claims-supervisor-single-agent-lodgement.md)."
@@ -165,7 +164,6 @@ for entry in agents_data.get("agents", []):
     if expected_webhook:
         live_wid = live_webhook_id(live)
         if live_wid != expected_webhook:
-            target = f"branch {args.branch_name}" if args.branch_name else f"live agent {entry['id']}"
             fail(
                 f"{entry['config']}: post_call_webhook_id mismatch on {target} — "
                 f"local: {expected_webhook}, live: {live_wid}"
@@ -175,7 +173,6 @@ for entry in agents_data.get("agents", []):
     if expected_events:
         live_events = live_webhook_events(live)
         if set(live_events) != set(expected_events):
-            target = f"branch {args.branch_name}" if args.branch_name else f"live agent {entry['id']}"
             fail(
                 f"{entry['config']}: webhooks.events mismatch on {target} — "
                 f"local: {sorted(expected_events)}, live: {sorted(live_events)} — "
@@ -187,7 +184,6 @@ for entry in agents_data.get("agents", []):
         live_tests = attached_test_ids(live)
         missing = expected_tests - live_tests
         if missing:
-            target = f"branch {args.branch_name}" if args.branch_name else f"live agent {entry['id']}"
             fail(
                 f"{entry['config']}: attached test(s) {sorted(missing)} declared locally "
                 f"but missing from {target} after push — same CLI "
@@ -202,7 +198,6 @@ for entry in agents_data.get("agents", []):
             if live_conditions.get(aid) != cond
         }
         if mismatched:
-            target = f"branch {args.branch_name}" if args.branch_name else f"live agent {entry['id']}"
             fail(
                 f"{entry['config']}: transfer_to_agent condition for target(s) "
                 f"{sorted(mismatched)} does not match {target} — the CLI can silently "
