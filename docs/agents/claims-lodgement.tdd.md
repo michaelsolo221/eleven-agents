@@ -157,9 +157,10 @@ unset.
 
 Priority: **P0** (safety/compliance-critical) · **P1** (core UX) · **P2**
 (polish). Severity: **NO-GO** (ships broken = incident) · **HIGH** ·
-**MEDIUM** · **LOW**. All existing tests are type `llm` (single-response,
+**MEDIUM** · **LOW**. All tests below are type `llm` (single-response,
 judged against the *last* `chat_history` turn only — see
-`docs/agents/tdd-guide.md`).
+`docs/agents/tdd-guide.md`) except one `simulation` test (full-conversation,
+judged against the entire transcript), added 2026-08-03.
 
 | # | Story (PRD) | Eval Type | Test File | Priority | Severity | Tags |
 |---|---|---|---|---|---|---|
@@ -187,6 +188,7 @@ judged against the *last* `chat_history` turn only — see
 | 31 | Switch between text and voice mid-conversation | *(none)* | — | P2 | LOW | **GAP** — channel |
 | — | Officer closes exactly when complete (routing, not a numbered story) | `llm` | `completes-claim-and-ends-call` | P0 | HIGH | routing, closing |
 | — | Officer does not close or end call with a field still missing | `llm` | `does-not-close-with-missing-fields` | P0 | HIGH | routing, completeness |
+| — | Full greeting-to-close vehicle guided-flow conversation, no field re-asked (structural gap, not a numbered PRD story) | `simulation` | `vehicle-guided-flow-full-conversation` | P1 | HIGH | vehicle, guided-flow, ordering, simulation |
 
 ¹ Filename says "redirects-claim-status-inquiry" but the test's internal
 `name` field reads "...redirects non-claims inquiries **from greeting**" —
@@ -199,13 +201,20 @@ distinct guardrail branches sharing one redirect number and, effectively,
 two tests — the boundary between "non-claims inquiry" and "not lodging,
 not inquiring either" isn't tested as a distinct case.
 
-**Structural gap, not row-specific:** every Officer `llm` test is a
-mid-conversation snapshot — `chat_history` primes prior turns, only the
-response to the *last* turn is judged. No test exercises a full
-greeting-to-close conversation end-to-end, so ordering bugs (e.g. the
-Officer re-asking a field it already has, three turns after collecting it)
-have no coverage. Per `docs/agents/tdd-guide.md`, this is exactly what
-`simulation`-type tests exist for; none are configured yet.
+**Structural gap, partially closed 2026-08-03:** every Officer `llm` test is
+a mid-conversation snapshot — `chat_history` primes prior turns, only the
+response to the *last* turn is judged. On its own this leaves ordering bugs
+(e.g. the Officer re-asking a field it already has, three turns after
+collecting it) with no coverage. Per `docs/agents/tdd-guide.md`, this is
+exactly what `simulation`-type tests exist for. A first one now exists —
+`vehicle-guided-flow-full-conversation` — covering the vehicle guided-flow
+happy path end-to-end (greeting through closing-message + `end_call`,
+asserting no field is ever re-asked). This is a start, not a close of the
+gap: it covers one flow (vehicle, guided-flow, cooperative claimant) out of
+several — property claims, express-lodgement ordering, multi-claim sessions,
+and WhatsApp/text-only conversations are all still snapshot-only. See
+`docs/agents/claims-lodgement.tdd.md`'s Coverage Map row above and Known
+Issue #4.
 
 ## 7. Test Data
 
@@ -233,6 +242,7 @@ rather than inventing new values, so transcripts stay easy to diff:
 |---|---|---|---|
 | 2026-07-12 | ADR 0003 redesign | 18/21 passing (officer: 18 tests, supervisor: 3 tests — supervisor since retired) | Relaxed name-spelling. Added `does-not-lodge-or-end-call` test. Updated transfer test. Officer end_call restricted to Emergency + Wrong Number only. |
 | 2026-07-26 | ADR 0005 — Supervisor retired | 16-18/18 typical (settled, after 3 fixes) | Supervisor removed; 3 Supervisor tests deleted; Officer gained `end_call` for Completed Claim, Unresponsive Caller, WhatsApp Timeout. Two tests renamed/rewritten (`completes-claim-and-ends-call`, `does-not-close-with-missing-fields`); several others had their transfer-fallback branches removed. Initial rollout was flaky (13/18) due to two live-state bugs (stale `transfer_to_agent` tool, orphaned workflow prompt injection — see `experiment_log.md` 2026-07-26 and ADR 0005's rollout incident section) plus test-mode channel ambiguity, all fixed same day. Remaining ~2/18 flakiness is ordinary evaluator variance (Known Issue #7). |
+| 2026-08-03 | First `simulation` test added (`vehicle-guided-flow-full-conversation`) | Officer now 19 tests, 18 `llm` + 1 `simulation` | New test failed once at `simulation_max_turns: 10` (turn budget exhausted one question before closing, not an agent defect — see `experiment_log.md`), passed cleanly at `simulation_max_turns: 20` on the immediate re-run. `llm` suite not re-run this session (no `agent_configs/` prompt/instruction change made — only `attached_tests`/`referenced_tests_ids` gained the new test ID). |
 
 Append a row after every CI run referenced in a debugging iteration (see
 `docs/agents/debugging-guide.md`) or before/after a Coverage Map change.
@@ -288,12 +298,32 @@ Append a row after every CI run referenced in a debugging iteration (see
    different verification mechanism (e.g. an integration check against
    actual webhook delivery) once the webhook payload work in issue #2 lands
    — tracking it here so it isn't mistaken for a testable Coverage Map gap.
-4. **Zero `simulation`-type tests** — see the structural gap note in §6.
-5. **Guardrail test-mode coverage is confirmed absent** (was previously
-   listed as unverified) — see §5. The `Claim completeness before closing`
-   guardrail never fires in `llm`-type test runs; only a live call or
-   `simulate-conversation` exercises it. No CI-gating test protects this
-   layer.
+4. **`simulation`-type coverage: one test added 2026-08-03, most flows still
+   gap.** See the structural gap note in §6. `vehicle-guided-flow-full-conversation`
+   covers the vehicle guided-flow happy path only; property claims,
+   express-lodgement, multi-claim sessions, and WhatsApp/text-only
+   conversations remain untested end-to-end (only as `llm` snapshots).
+   Building the first one surfaced a schema/mechanics nuance worth recording
+   for whoever adds the next: `simulation_max_turns` needs headroom beyond
+   the literal number of question/answer exchanges — a `Claim completeness
+   before closing` guardrail retry (confirmed to actually fire on
+   `simulation` runs, unlike `llm` test-mode runs — see Known Issue #5)
+   consumes a turn without advancing the conversation, and 10 turns proved
+   too tight for an 8-field vehicle claim plus name-spelling confirmation
+   plus the mandatory "another claim?" question; 20 was sufficient. See
+   `experiment_log.md` 2026-08-03.
+5. **Guardrail test-mode coverage is confirmed absent for `llm`-type tests**
+   (was previously listed as unverified) — see §5. The `Claim completeness
+   before closing` guardrail never fires in `llm`-type test runs. **Update
+   2026-08-03:** confirmed the guardrail *does* fire on `simulation`-type
+   test runs via `POST /v1/convai/agents/{id}/run-tests` — real
+   `guardrail_triggered` tool calls with populated `trigger_reason` observed
+   twice while sanity-checking `vehicle-guided-flow-full-conversation` (see
+   `experiment_log.md` 2026-08-03). This doesn't change the `llm`-type
+   finding above, but it means `simulation` tests are the first CI-reachable
+   mechanism in this repo that actually exercises this guardrail layer —
+   still only for the one flow the new test covers, not a general claim
+   about coverage.
 6. Filename/content-name drift on `redirects-claim-status-inquiry.json`
    (§6, footnote 1) — low-severity but slows down triage.
 7. **`collects-vehicle-claim-via-guided-flow` and `handles-express-vehicle-claim`
@@ -314,3 +344,25 @@ Append a row after every CI run referenced in a debugging iteration (see
   - §6 gap "29 | WhatsApp channel, full lodgement happy path" is the coverage hole that let the original spelling bug ship — still open, should be closed with a WhatsApp-channel express-lodgement test asserting NO spelling question is asked.
   - Also investigated a separate report of WhatsApp sessions with no delivered greeting (three consecutive sessions, `cost: 0`, "Client disconnected: 1000" within 6–14s). Attempted to remove the orphaned `workflow` block (Known Issue #1) as the leading repo-controllable suspect via `PATCH {"workflow": null}`; the platform silently ignored it. Confirmed `edges: {}` means the workflow is unreachable from `start_node` regardless, so it's unlikely to be the actual cause — issue remains unresolved and open, likely a WhatsApp/Meta-side delivery problem outside this repo.
 - **2026-07-26** — Claims Lodgement Supervisor retired (ADR 0005): the flow no longer promises a claim number or lodgement email, so the independent second-agent completeness re-read was judged to protect nothing a same-agent guardrail couldn't. Officer absorbed all closing responsibility — `end_call` now covers Completed Claim, Unresponsive Caller, and WhatsApp Timeout in addition to Emergency and Wrong Number. New Closing Message: "I've recorded your details. Our team will be in touch within two business days." `transfer_to_agent` removed from the Officer's tool set. Architecture, Tools, Routing, Guardrails, and Coverage Map sections rewritten for the single-agent shape; Utility/Telecom Customer Intake agent (unrelated, separate flow) also removed from this repo in the same session.
+- **2026-08-03** — Added the repo's first `simulation`-type test,
+  `test_configs/Claims-Lodgement-Officer-vehicle-guided-flow-full-conversation.json`
+  (`test_2601kz34jff6edqa72x8wrf0n366`), closing part of the §6 structural
+  gap / Known Issue #4: a cooperative-claimant vehicle guided-flow
+  conversation judged end-to-end (greeting through closing-message +
+  `end_call`) for zero repeated field-asks, all required fields collected,
+  and a correctly-worded close. Companion fix to
+  `scripts/validate-configs.py`: the `chat_history` non-empty-array check
+  now only applies to `llm`/`tool` tests; `simulation` tests are validated
+  for a non-empty `simulation_scenario` instead (an empty `chat_history` is
+  the normal fresh-start case for a simulation, and the old check would have
+  hard-failed every simulation test in CI). Sanity-checking the new test
+  live surfaced two things not predicted going in — both logged in
+  `experiment_log.md` 2026-08-03: (1) `simulation_max_turns: 10` was too
+  tight (guardrail retries consume turns without advancing the
+  conversation; raised to 20), and (2) the `Claim completeness before
+  closing` guardrail is confirmed to actually fire on `simulation`-type
+  `run-tests` calls, unlike the confirmed-absent case for `llm`-type
+  test-mode runs (Known Issue #5, updated). This is a start on the
+  structural gap, not a close of it — see the §6 gap note and Known Issue
+  #4 for what's still snapshot-only (property claims, express-lodgement,
+  multi-claim sessions, WhatsApp/text-only).
