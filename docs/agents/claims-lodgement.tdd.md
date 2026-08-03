@@ -33,6 +33,26 @@ One registered ElevenLabs agent, `agents.json`:
   within two business days.") is the entire promise. See `CONTEXT.md`'s
   **Closing Message** and **Completeness Guardrail** entries.
 
+  **Text-only (WhatsApp) claim-summary-card (issue #64):** on a text-only
+  conversation, once a claim's fields are complete per the data-completeness
+  gate (§3), the Officer presents a plain text summary card of that claim's
+  captured fields — one `Label: value` line per field, no asterisks, no
+  bullet characters, no markdown headers, no emojis, digits for all numbers
+  — and requires the claimant's explicit confirmation before moving on to
+  ask about another claim or delivering the Closing Message. This happens
+  once per claim (a multi-claim session gets one card per claim, right after
+  that claim's own fields complete — not one consolidated card at the end).
+  A claimant-flagged correction re-collects just that field, then
+  re-presents the *complete* updated card (not a diff) and asks again. Card
+  confirmation is a deliberately separate gate from data completeness — see
+  §3 and the `text-summary-card-confirmation` prompt rule — kept distinct so
+  neither can silently substitute for the other. Voice calls are entirely
+  unaffected: no card, no extra confirmation step. An early triage draft of
+  this feature specified WhatsApp-markdown formatting (`*bold*`, `•`
+  bullets); that was reversed in favor of plain text before implementation
+  (see issue #64's "Correction — card format changed to plain text" comment)
+  — the card is plain text only, matching the behavior actually shipped.
+
 **Layered defense** (reduced from ADR 0002's four layers to two, since the
 independent second-agent re-read no longer exists — see ADR 0005 for why
 that was judged an acceptable trade):
@@ -83,6 +103,29 @@ both names explicitly confirmed by the claimant in any form (agent guessing
 WhatsApp), the typed name is exact and no spelling confirmation is required.
 Any doubt on any item → treat as missing, ask for it, do not close.
 
+**Text-only claim-summary-card gate is separate from this one (issue #64).**
+This closing-condition rule is, and remains, a pure *data*-completeness
+check — it does not know or care whether a summary card was ever shown. On
+a text-only conversation, satisfying this rule is *necessary but not
+sufficient*: a second, independent prompt rule
+(`text-summary-card-confirmation`) additionally requires the plain text
+summary card to have been presented for that claim and explicitly confirmed
+by the claimant before the Officer may ask about another claim or deliver
+the Closing Message. The two gates are kept deliberately distinct rather
+than merged into one "complete" condition. This mirrors the lesson of the
+2026-07-22 incident described in §10's Changelog: a channel-conditional
+exception added to the main prompt behavior was silently missed by three
+independent enforcement layers (the `transfer_to_agent` condition, the
+completeness guardrail, and the eval criterion) that weren't updated in the
+same change, and the resulting bug shipped to production for over a week.
+For issue #64, every enforcement point that reasons about "is this claim
+ready to close" —
+the `closing-condition`, `text-summary-card-confirmation`, `closing-message`,
+`end-call-restriction`, and `multiple-claims` prompt rules, the `Claim
+completeness before closing` guardrail, and the `wraps-up-and-ends-call-
+when-complete` evaluation criterion — was updated together in the same
+change, specifically to not repeat that failure mode.
+
 ## 4. Session / Data Variables
 
 `platform_settings.data_collection`:
@@ -118,6 +161,25 @@ Any doubt on any item → treat as missing, ask for it, do not close.
   not require a spelling exchange. Exempt: Emergency, Wrong Number,
   Unresponsive Caller, WhatsApp Timeout. Feedback message quotes
   `{{trigger_reason}}` back to the agent.
+
+  **Extended for issue #64:** on a text-only conversation, this guardrail
+  additionally blocks a response that ends the call, speaks the Closing
+  Message, or moves on to ask about another claim, for a claim whose fields
+  are otherwise complete, unless the transcript shows a plain text summary
+  card was presented for that specific claim *and* the claimant explicitly
+  confirmed it afterward. A card that was presented but only met with a
+  correction (not a confirmation) does not satisfy this — the guardrail
+  treats the claim as unconfirmed until a full updated card was re-presented
+  and subsequently confirmed. This mirrors the `text-summary-card-
+  confirmation` prompt rule so the guardrail can't silently drift out of
+  sync with the prompt's actual text-only behavior (see §3's note on why
+  these two gates are updated together).
+
+  The evaluation criterion `wraps-up-and-ends-call-when-complete`
+  (`platform_settings.evaluation.criteria`) was extended the same way, for
+  the same reason — it now also fails a response that closes a text-only
+  claim without a confirmed summary card, not just one with a missing data
+  field.
 
 Prompt-level guardrail sections (not a platform guardrail — enforced by
 instruction text): Emergency, Non-Claims Inquiries, Wrong Number, Small
@@ -182,7 +244,7 @@ judged against the *last* `chat_history` turn only — see
 | 25 | WhatsApp session timeout (1hr) | `llm` | `handles-whatsapp-session-timeout` | P1 | MEDIUM | whatsapp, timeout |
 | 26 | Wrong number | `llm` | `handles-wrong-number` | P1 | MEDIUM | redirect |
 | 27 | Small talk, steer back | `llm` | `steers-small-talk` | P2 | LOW | small-talk |
-| 29 | WhatsApp channel, full lodgement happy path | *(none — only the timeout edge case is WhatsApp-specific)* | — | P2 | LOW | **GAP** — channel |
+| 29 | WhatsApp channel, full lodgement happy path (incl. summary card presentation, confirmation, and correction — issue #64) | `llm` | `presents-whatsapp-summary-card`, `completes-whatsapp-claim-after-card-confirmation`, `recards-after-claimant-correction` | P1 | HIGH | whatsapp, channel, summary-card |
 | 30 | Phone channel | *(implicit — default context of all tests)* | — | — | — | covered generically |
 | 31 | Switch between text and voice mid-conversation | *(none)* | — | P2 | LOW | **GAP** — channel |
 | — | Officer closes exactly when complete (routing, not a numbered story) | `llm` | `completes-claim-and-ends-call` | P0 | HIGH | routing, closing |
@@ -311,6 +373,11 @@ Append a row after every CI run referenced in a debugging iteration (see
 - **2026-07-12 (post-ADR 0003)** — Relaxed name-spelling (accepts agent-guessing + claimant-confirming). Officer `end_call` restricted to Emergency + Wrong Number only; Unresponsive/Timeout now route via Supervisor. Added `Claims-Lodgement-Officer-does-not-lodge-or-end-call` test. Updated evaluation criteria (`verifies-name-spelling` → `confirms-name-spelling`). Supervisor now handles non-claim transfers. See `docs/adr/0003-officer-end-call-restriction.md`.
 - **2026-07-22** — Production trace review (conversation `conv_3001ky4r174yfggt53r26gtjazd6`, WhatsApp, contact `0404999621`) found the agent asking the claimant to confirm name-spelling letter-by-letter on a text-only WhatsApp conversation. Root cause: the 2026-07-12 channel-aware spelling fix (`a5c51bf`) only updated the main prompt's text-only exception — the `transfer_to_agent` condition, the `Claim completeness before closing` guardrail, and the `verifies-name-spelling`/`confirms-name-spelling` eval criterion (the rename itself never actually landed) were left requiring spelling confirmation unconditionally, so those three enforcement points overrode the prompt's correct "skip on text-only" instruction. Fixed all three to carry the same text-only exception; eval criterion renamed to `confirms-name-spelling` (completing the rename ADR 0003 had already decided).
   - While pushing the fix, discovered `elevenlabs agents push` was silently dropping the `transfer_to_agent` condition text specifically — two consecutive pushes left the live condition on stale, pre-2026-07-12 wording despite the local file and the push both reporting success. Confirmed via direct API fetch (eval criterion and guardrail persisted correctly on the same pushes; only `condition` didn't). Worked around with a direct API `PATCH` (documented in the repo's `CLAUDE.md` Local↔Platform Sync Fields section); `scripts/verify-live-tools.py` extended to diff local vs. live condition text per transfer target so this can't silently drift again.
-  - §6 gap "29 | WhatsApp channel, full lodgement happy path" is the coverage hole that let the original spelling bug ship — still open, should be closed with a WhatsApp-channel express-lodgement test asserting NO spelling question is asked.
+  - §6 gap "29 | WhatsApp channel, full lodgement happy path" is the coverage hole that let the original spelling bug ship — still open, should be closed with a WhatsApp-channel express-lodgement test asserting NO spelling question is asked. **Closed 2026-08-03 by issue #64** — see that changelog entry below.
   - Also investigated a separate report of WhatsApp sessions with no delivered greeting (three consecutive sessions, `cost: 0`, "Client disconnected: 1000" within 6–14s). Attempted to remove the orphaned `workflow` block (Known Issue #1) as the leading repo-controllable suspect via `PATCH {"workflow": null}`; the platform silently ignored it. Confirmed `edges: {}` means the workflow is unreachable from `start_node` regardless, so it's unlikely to be the actual cause — issue remains unresolved and open, likely a WhatsApp/Meta-side delivery problem outside this repo.
 - **2026-07-26** — Claims Lodgement Supervisor retired (ADR 0005): the flow no longer promises a claim number or lodgement email, so the independent second-agent completeness re-read was judged to protect nothing a same-agent guardrail couldn't. Officer absorbed all closing responsibility — `end_call` now covers Completed Claim, Unresponsive Caller, and WhatsApp Timeout in addition to Emergency and Wrong Number. New Closing Message: "I've recorded your details. Our team will be in touch within two business days." `transfer_to_agent` removed from the Officer's tool set. Architecture, Tools, Routing, Guardrails, and Coverage Map sections rewritten for the single-agent shape; Utility/Telecom Customer Intake agent (unrelated, separate flow) also removed from this repo in the same session.
+- **2026-08-03 (issue #64)** — Added the text-only (WhatsApp) claim-summary-card: once a claim's fields are complete, the Officer presents a plain text summary (one `Label: value` line per captured field, no markdown, no emojis, digits for numbers, policy number omitted entirely if not provided) and requires explicit claimant confirmation before moving on to ask about another claim or deliver the Closing Message, once per claim. A claimant correction re-collects just that field and re-presents the *full* updated card. An early triage draft (the "Agent Brief" comment on #64) specified WhatsApp-markdown formatting; that was reversed to plain text before implementation by a follow-up "Correction" comment on the same issue — the shipped behavior is plain text only.
+  - New `<procedure id="claim-summary-card">` and `<rule id="text-summary-card-confirmation">` added to the prompt; `closing-message`, `end-call-restriction`, and `multiple-claims` rules updated to require the text-only card gate in addition to (not merged with) the existing `closing-condition` data-completeness gate — see §3's note on why the two gates stay separate. Learning from the 2026-07-22 incident (above): every enforcement point reasoning about "is this claim ready to close" was grepped and updated in the same change, not just the primary prompt instruction — this included the `Claim completeness before closing` guardrail and the `wraps-up-and-ends-call-when-complete` eval criterion (§5).
+  - Closed Coverage Map gap #29 (WhatsApp full lodgement happy path) with three new `llm` tests: `Claims-Lodgement-Officer-presents-whatsapp-summary-card` (card presentation + format), `Claims-Lodgement-Officer-completes-whatsapp-claim-after-card-confirmation` (confirmation → no-more-claims → Closing Message/`end_call`), and `Claims-Lodgement-Officer-recards-after-claimant-correction` (correction → full re-presented card). All three pin `conversation_initiation_source: "whatsapp"` per the Test-mode channel pinning note above.
+  - As with the rest of this guardrail layer, the text-only card-confirmation gate has no test-mode coverage — see §5 and Known Issue #5's note that guardrails don't fire in CLI/API test-mode runs; the three new `llm` tests exercise only the prompt's raw, first-pass behavior, not the guardrail's corrective retry.
+  - A dedicated evaluation criterion for the card behavior itself (beyond the `wraps-up-and-ends-call-when-complete` extension above) is intentionally out of scope here — tracked separately in issue #67, blocked on this change landing first.
