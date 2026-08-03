@@ -1,0 +1,57 @@
+{
+    "name": "Claims Lodgement Officer completes WhatsApp claim after card confirmation and no more claims",
+    "type": "llm",
+    "conversation_initiation_source": "whatsapp",
+    "chat_history": [
+        {
+            "role": "user",
+            "time_in_call_secs": 5,
+            "message": "Hi, I need to lodge a vehicle claim. Policy POL-556677. My car was rear-ended at a red light on 2 August 2026 at around 3:15pm, at the corner of King Street and Elizabeth Street, Melbourne. Registration 24F36A. You can reach me on 0404 991 625. My name's Emily Park."
+        },
+        {
+            "role": "agent",
+            "time_in_call_secs": 10,
+            "message": "Here's what I have for your claim:\n\nClaim Type: Vehicle\nRegistration: 24F36A\nIncident: Rear-ended at a red light\nDate and Time: 2 August 2026, 3:15pm\nLocation: Corner of King Street and Elizabeth Street, Melbourne\nContact: Emily Park (0404 991 625)\nPolicy Number: POL-556677\n\nCan you confirm this is all correct?"
+        },
+        {
+            "role": "user",
+            "time_in_call_secs": 20,
+            "message": "Yes, that's all correct."
+        },
+        {
+            "role": "agent",
+            "time_in_call_secs": 25,
+            "message": "Great, thank you. Is there another claim you'd like to lodge?"
+        },
+        {
+            "role": "user",
+            "time_in_call_secs": 30,
+            "message": "No, that's the only one."
+        }
+    ],
+    "success_condition": "This is a text-only (WhatsApp) conversation. The claimant already confirmed the plain text summary card for their vehicle claim was correct, and has now confirmed there are no more claims to lodge. The agent must now tell the claimant something equivalent to 'I've recorded your details. Our team will be in touch within two business days.' and then call end_call. The agent must NOT say the claim has been 'lodged', must NOT mention a claim number, and must NOT promise an email confirmation. The agent must NOT present the summary card again or ask for confirmation again — that already happened. The response must be plain text with no asterisks, bullet characters, headers, or emojis.",
+    "success_examples": [
+        {
+            "response": "Thanks Emily, I've recorded your details. Our team will be in touch within two business days.",
+            "type": "success"
+        },
+        {
+            "response": "Perfect, that's everything. I've recorded your details and our team will reach out within two business days. Take care.",
+            "type": "success"
+        }
+    ],
+    "failure_examples": [
+        {
+            "response": "Your claim has been lodged. You'll receive a claim number by email shortly.",
+            "type": "failure"
+        },
+        {
+            "response": "Here's what I have for your claim:\n\nClaim Type: Vehicle\nRegistration: 24F36A\n\nCan you confirm this is all correct?",
+            "type": "failure"
+        },
+        {
+            "response": "Could you please provide your policy number?",
+            "type": "failure"
+        }
+    ]
+}

@@ -1,0 +1,47 @@
+{
+    "name": "Claims Lodgement Officer re-presents full summary card after claimant correction",
+    "type": "llm",
+    "conversation_initiation_source": "whatsapp",
+    "chat_history": [
+        {
+            "role": "user",
+            "time_in_call_secs": 5,
+            "message": "Hi, I need to lodge a vehicle claim. Policy POL-909090. My car was rear-ended at a red light on 2 August 2026 at around 3:15pm, at the corner of King Street and Elizabeth Street, Melbourne. Registration 24F36A. You can reach me on 0404 991 625. My name's Emily Park."
+        },
+        {
+            "role": "agent",
+            "time_in_call_secs": 10,
+            "message": "Here's what I have for your claim:\n\nClaim Type: Vehicle\nRegistration: 24F36A\nIncident: Rear-ended at a red light\nDate and Time: 2 August 2026, 3:15pm\nLocation: Corner of King Street and Elizabeth Street, Melbourne\nContact: Emily Park (0404 991 625)\nPolicy Number: POL-909090\n\nCan you confirm this is all correct?"
+        },
+        {
+            "role": "user",
+            "time_in_call_secs": 20,
+            "message": "Actually the registration's wrong — it should be 25G47B, not 24F36A."
+        }
+    ],
+    "success_condition": "This is a text-only (WhatsApp) conversation. The claimant has just flagged that the registration on the summary card is wrong and given the correct value (25G47B). The agent must accept the correction and re-present the FULL updated plain text summary card — every field again (claim type, corrected registration 25G47B, incident description, date and time, incident location, contact, and policy number), not just the corrected registration line by itself — in 'Label: value' plain text lines with no asterisks, bullet characters, headers, or emojis, and ask the claimant to confirm again. The agent must NOT call end_call in this turn, must NOT ask about additional claims yet, and must NOT deliver the final closing line. A response that only acknowledges the fix (e.g. 'Got it, updating the registration') without re-showing the complete card is a failure — the full card must be re-presented, not a diff.",
+    "success_examples": [
+        {
+            "response": "Thanks for catching that. Here's the updated summary:\n\nClaim Type: Vehicle\nRegistration: 25G47B\nIncident: Rear-ended at a red light\nDate and Time: 2 August 2026, 3:15pm\nLocation: Corner of King Street and Elizabeth Street, Melbourne\nContact: Emily Park (0404 991 625)\nPolicy Number: POL-909090\n\nDoes this all look correct now?",
+            "type": "success"
+        },
+        {
+            "response": "No worries, I've updated the registration. Here's the full summary again:\n\nClaim Type: Vehicle\nRegistration: 25G47B\nIncident: Rear-ended at a red light\nDate and Time: 2 August 2026, 3:15pm\nLocation: Corner of King Street and Elizabeth Street, Melbourne\nContact: Emily Park (0404 991 625)\nPolicy Number: POL-909090\n\nCan you confirm everything is correct?",
+            "type": "success"
+        }
+    ],
+    "failure_examples": [
+        {
+            "response": "Got it, updating the registration to 25G47B.",
+            "type": "failure"
+        },
+        {
+            "response": "Thanks, I've recorded your details. Our team will be in touch within two business days.",
+            "type": "failure"
+        },
+        {
+            "response": "*Registration:* 25G47B\n\nIs everything else correct?",
+            "type": "failure"
+        }
+    ]
+}
