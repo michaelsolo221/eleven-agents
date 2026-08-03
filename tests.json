@@ -94,6 +94,11 @@
             "config": "test_configs/Claims-Lodgement-Officer-formats-numbers-as-digits-after-channel-switch-to-whatsapp.json",
             "id": "test_3901kz2gz6pmey892jr524tp7nev",
             "type": "llm"
+        },
+        {
+            "config": "test_configs/Claims-Lodgement-Officer-keeps-phone-and-policy-numbers-as-digits-on-voice.json",
+            "id": "test_5401kz2hpmpaen3rgf0k9x81ce9g",
+            "type": "llm"
         }
     ]
 }

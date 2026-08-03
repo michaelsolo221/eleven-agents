@@ -1,0 +1,43 @@
+{
+    "name": "Claims Lodgement Officer keeps phone and policy numbers as digits on voice calls",
+    "type": "llm",
+    "conversation_initiation_source": "twilio",
+    "chat_history": [
+        {
+            "role": "user",
+            "time_in_call_secs": 5,
+            "message": "Hi, I need to lodge a vehicle claim. My policy number is POL-204958."
+        },
+        {
+            "role": "user",
+            "time_in_call_secs": 15,
+            "message": "Someone rear-ended me at a red light on the corner of 207 Example Street yesterday around 3pm. My rego is 24F36A. You can reach me on 0404 991 625."
+        },
+        {
+            "role": "user",
+            "time_in_call_secs": 25,
+            "message": "Can you read back my policy number, registration, and phone number, just to double check?"
+        }
+    ],
+    "success_condition": "This is a voice call (system__is_text_only is false) where the claimant asks the agent to read back their policy number, vehicle registration, and phone number. Per the tone rule's exception, phone numbers, policy numbers, and registration numbers must remain as digits even on voice calls — only other numbers (like street addresses) are spoken as words on voice. The agent's response must state the policy number, registration, and phone number as digits/alphanumeric characters (e.g. 'POL-204958', '24F36A', '0404 991 625' or digit-by-digit equivalents), not spelled out as words (e.g. not 'two oh four nine nine one six two five').",
+    "success_examples": [
+        {
+            "response": "Sure — I have policy number POL-204958, registration 24F36A, and your phone number as 0404 991 625. Does that all look right?",
+            "type": "success"
+        },
+        {
+            "response": "Of course. Policy: POL-204958. Registration: 24F36A. Phone: zero four zero four, nine nine one, six two five.",
+            "type": "success"
+        }
+    ],
+    "failure_examples": [
+        {
+            "response": "Sure — your policy number is P O L, two oh four, nine five eight, your registration is two four F three six A, and your phone number is zero four zero four nine nine one six two five.",
+            "type": "failure"
+        },
+        {
+            "response": "Your phone number is oh-four-oh-four, double-nine-one, six-two-five, and your policy is two-oh-four-nine-five-eight.",
+            "type": "failure"
+        }
+    ]
+}
