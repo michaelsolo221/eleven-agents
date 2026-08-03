@@ -3,10 +3,20 @@ import os
 from typing import Any
 
 import resend
+from tenacity import retry, stop_after_attempt, wait_random_exponential
 
 from server.templates import render_email_html
 
 logger = logging.getLogger(__name__)
+
+
+@retry(
+    wait=wait_random_exponential(min=1, max=10),
+    stop=stop_after_attempt(5),
+    reraise=True,
+)
+def _send_email_with_retry(email_params: resend.Emails.SendParams) -> Any:
+    return resend.Emails.send(email_params)
 
 
 def send_claim_email(payload: dict[str, Any]) -> bool:
@@ -132,7 +142,7 @@ def send_claim_email(payload: dict[str, Any]) -> bool:
             if addr.strip()
         ]
 
-        resend.Emails.send(
+        _send_email_with_retry(
             {
                 "from": from_email,
                 "to": to_emails,

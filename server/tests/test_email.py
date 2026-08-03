@@ -1,16 +1,21 @@
 import json
-from typing import Any
+from typing import Any, cast
 
 import pytest
 from fastapi import FastAPI
 from fastapi.testclient import TestClient
+from tenacity import wait_none
 
-from server.email_service import send_claim_email
+from server.email_service import _send_email_with_retry, send_claim_email
 from server.main import app
 from server.templates import render_email_html
 from server.tests.test_security import TEST_SECRET, create_signature_header
 
 client = TestClient(app)
+
+@pytest.fixture(autouse=True)
+def fast_retry_wait(monkeypatch: pytest.MonkeyPatch) -> None:
+    monkeypatch.setattr(cast(Any, _send_email_with_retry).retry, "wait", wait_none())
 
 
 @pytest.fixture
@@ -202,6 +207,55 @@ def test_send_claim_email_handles_exception_safely(
 
     success = send_claim_email(sample_payload)
     assert success is False
+    assert (
+        "Error sending claim email for conversation_id=conv_test_12345" in caplog.text
+    )
+
+
+def test_send_claim_email_retry_success(
+    sample_payload: dict[str, Any], monkeypatch: pytest.MonkeyPatch
+) -> None:
+    monkeypatch.setenv("RESEND_API_KEY", "re_test_key_123")
+    monkeypatch.setenv("FROM_EMAIL", "claims@example.com")
+    monkeypatch.setenv("NOTIFICATION_EMAIL", "test_recipient@example.com")
+
+    attempts = 0
+
+    def mock_send_flaky(params: dict[str, Any]) -> dict[str, Any]:
+        nonlocal attempts
+        attempts += 1
+        if attempts < 3:
+            raise RuntimeError(f"HTTP 429 Rate Limit error on attempt {attempts}")
+        return {"id": "msg_retry_success"}
+
+    monkeypatch.setattr("resend.Emails.send", mock_send_flaky)
+
+    success = send_claim_email(sample_payload)
+    assert success is True
+    assert attempts == 3
+
+
+def test_send_claim_email_retry_exhaustion(
+    sample_payload: dict[str, Any],
+    monkeypatch: pytest.MonkeyPatch,
+    caplog: pytest.LogCaptureFixture,
+) -> None:
+    monkeypatch.setenv("RESEND_API_KEY", "re_test_key_123")
+    monkeypatch.setenv("FROM_EMAIL", "claims@example.com")
+    monkeypatch.setenv("NOTIFICATION_EMAIL", "test_recipient@example.com")
+
+    attempts = 0
+
+    def mock_send_persistent_failure(params: dict[str, Any]) -> dict[str, Any]:
+        nonlocal attempts
+        attempts += 1
+        raise RuntimeError(f"HTTP 503 Service Unavailable attempt {attempts}")
+
+    monkeypatch.setattr("resend.Emails.send", mock_send_persistent_failure)
+
+    success = send_claim_email(sample_payload)
+    assert success is False
+    assert attempts == 5
     assert (
         "Error sending claim email for conversation_id=conv_test_12345" in caplog.text
     )
