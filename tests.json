@@ -89,6 +89,11 @@
             "config": "test_configs/Claims-Lodgement-Officer-does-not-close-with-missing-fields.json",
             "type": "llm",
             "id": "test_3001kyega5pzf11amm0v7b7xd6rj"
+        },
+        {
+            "config": "test_configs/Claims-Lodgement-Officer-formats-numbers-as-digits-after-channel-switch-to-whatsapp.json",
+            "id": "test_3901kz2gz6pmey892jr524tp7nev",
+            "type": "llm"
         }
     ]
 }

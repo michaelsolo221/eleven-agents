@@ -33,6 +33,23 @@ One registered ElevenLabs agent, `agents.json`:
   within two business days.") is the entire promise. See `CONTEXT.md`'s
   **Closing Message** and **Completeness Guardrail** entries.
 
+  **Channel-aware response formatting (issue #63):** the Officer's `<tone>`
+  prompt section splits number formatting by channel. On voice calls
+  (`{{system__is_text_only}}` is false), numbers continue to be written as
+  words so they're TTS-readable — unchanged from prior behavior. On
+  text-only (WhatsApp) conversations (`{{system__is_text_only}}` is true),
+  ALL numbers are written as digits — this broadens the historical
+  phone/policy/registration-only digit exception into the default for
+  text-only, rather than a narrow channel-independent carve-out. Separately,
+  a new channel-independent `no-markdown-formatting` prompt rule blocks
+  markdown formatting symbols (asterisks, bullet characters, headers, etc.)
+  in every response, on both channels — a guard against model drift, not a
+  description of a prior behavior difference. Ordinary conversational turns
+  remain plain prose on both channels; this does not introduce any
+  line-per-field or bulleted layout. Explicitly out of scope: any
+  markdown/emoji/structured-layout formatting, and the WhatsApp
+  claim-summary-card's own field layout (tracked separately in issue #64).
+
 **Layered defense** (reduced from ADR 0002's four layers to two, since the
 independent second-agent re-read no longer exists — see ADR 0005 for why
 that was judged an acceptable trade):
@@ -184,7 +201,7 @@ judged against the *last* `chat_history` turn only — see
 | 27 | Small talk, steer back | `llm` | `steers-small-talk` | P2 | LOW | small-talk |
 | 29 | WhatsApp channel, full lodgement happy path | *(none — only the timeout edge case is WhatsApp-specific)* | — | P2 | LOW | **GAP** — channel |
 | 30 | Phone channel | *(implicit — default context of all tests)* | — | — | — | covered generically |
-| 31 | Switch between text and voice mid-conversation | *(none)* | — | P2 | LOW | **GAP** — channel |
+| 31 | Switch between text and voice mid-conversation | `llm` | `formats-numbers-as-digits-after-channel-switch-to-whatsapp`³ | P2 | LOW | channel, formatting |
 | — | Officer closes exactly when complete (routing, not a numbered story) | `llm` | `completes-claim-and-ends-call` | P0 | HIGH | routing, closing |
 | — | Officer does not close or end call with a field still missing | `llm` | `does-not-close-with-missing-fields` | P0 | HIGH | routing, completeness |
 
@@ -198,6 +215,20 @@ story 28 (clearly-not-lodging-and-not-a-non-claims-inquiry) are three
 distinct guardrail branches sharing one redirect number and, effectively,
 two tests — the boundary between "non-claims inquiry" and "not lodging,
 not inquiring either" isn't tested as a distinct case.
+
+³ Closed with a single-channel test, not a literal live channel handoff —
+the CLI's `conversation_initiation_source` pins one channel per test run,
+so there's no way to script an actual mid-call voice-to-WhatsApp switch
+through this schema. The test instead opens `chat_history` with the
+claimant stating they're continuing a claim started on a phone call, pinned
+`conversation_initiation_source: "whatsapp"`, several turns into the
+conversation (not a fresh greeting), and asserts the channel-conditional
+number-formatting rule (§1) holds on the current channel for an
+already-in-progress claim — the specific regression risk story 31 was
+tracking (an agent that locks into whatever format it started with instead
+of re-checking `{{system__is_text_only}}` each turn). The literal
+"mid-conversation channel switch" mechanic remains untestable via `llm`/
+`simulation` test-mode, same limitation as story 24 (§9, Known Issue 3).
 
 **Structural gap, not row-specific:** every Officer `llm` test is a
 mid-conversation snapshot — `chat_history` primes prior turns, only the
@@ -314,3 +345,4 @@ Append a row after every CI run referenced in a debugging iteration (see
   - §6 gap "29 | WhatsApp channel, full lodgement happy path" is the coverage hole that let the original spelling bug ship — still open, should be closed with a WhatsApp-channel express-lodgement test asserting NO spelling question is asked.
   - Also investigated a separate report of WhatsApp sessions with no delivered greeting (three consecutive sessions, `cost: 0`, "Client disconnected: 1000" within 6–14s). Attempted to remove the orphaned `workflow` block (Known Issue #1) as the leading repo-controllable suspect via `PATCH {"workflow": null}`; the platform silently ignored it. Confirmed `edges: {}` means the workflow is unreachable from `start_node` regardless, so it's unlikely to be the actual cause — issue remains unresolved and open, likely a WhatsApp/Meta-side delivery problem outside this repo.
 - **2026-07-26** — Claims Lodgement Supervisor retired (ADR 0005): the flow no longer promises a claim number or lodgement email, so the independent second-agent completeness re-read was judged to protect nothing a same-agent guardrail couldn't. Officer absorbed all closing responsibility — `end_call` now covers Completed Claim, Unresponsive Caller, and WhatsApp Timeout in addition to Emergency and Wrong Number. New Closing Message: "I've recorded your details. Our team will be in touch within two business days." `transfer_to_agent` removed from the Officer's tool set. Architecture, Tools, Routing, Guardrails, and Coverage Map sections rewritten for the single-agent shape; Utility/Telecom Customer Intake agent (unrelated, separate flow) also removed from this repo in the same session.
+- **2026-08-03 (issue #63)** — Channel-aware response formatting. Split the `<tone>` section's number-formatting bullet by channel: voice calls keep writing numbers as words (unchanged); text-only (WhatsApp) conversations now write ALL numbers as digits, broadening the old phone/policy/registration-only digit exception into the text-only default. Added a new, channel-independent `no-markdown-formatting` prompt rule blocking markdown symbols (asterisks, bullets, headers, etc.) in every response on both channels — a guard against model drift, not a description of prior behavior. An early triage draft of this issue proposed WhatsApp markdown/emoji formatting; that was rejected during triage grilling (settled jointly with issue #64) in favor of plain prose on both channels — see the issue's "Agent Brief" comment. Deliberately scoped away from `closing-condition`, `closing-message`, `end-call-restriction`, `multiple-claims`, the `Claim completeness before closing` guardrail, and the `wraps-up-and-ends-call-when-complete` eval criterion — those are issue #64's (WhatsApp claim-summary-card) territory, kept untouched here so the two changes merge independently. Closed §6 gap "31 | Switch between text and voice mid-conversation" with `Claims-Lodgement-Officer-formats-numbers-as-digits-after-channel-switch-to-whatsapp` (see §6 footnote 3 for the CLI's single-channel-per-test limitation on what "closed" means here). New test registered via `elevenlabs tests push` (`test_3901kz2gz6pmey892jr524tp7nev`) and attached to the Officer's `platform_settings.testing.attached_tests`.
