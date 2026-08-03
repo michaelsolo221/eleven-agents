@@ -26,6 +26,64 @@ between the Officer and Supervisor. See
 
 <!-- Newest entries go on top. -->
 
+## 2026-08-03 — First `simulation`-type test: turn-budget too tight, guardrail confirmed live in `run-tests`
+
+**Failing test(s):** `test_configs/Claims-Lodgement-Officer-vehicle-guided-flow-full-conversation.json`
+(new, × 1 run via direct `POST /v1/convai/agents/{id}/run-tests` sanity check
+against the live production agent — not a CLI `agents test` run, since the
+new test wasn't yet attached to any pushed agent config).
+**Category:** EVAL_CONFIG_ERROR (test's own `simulation_max_turns` too low —
+not an agent bug).
+
+This is the repo's first `simulation`-type test (closing part of TDD §6's
+structural gap / Known Issue #4 — see `docs/agents/claims-lodgement.tdd.md`).
+Two things came out of sanity-checking it live that the brief didn't predict:
+
+**1. `simulation_max_turns: 10` was too tight and produced a false failure.**
+First run: `condition_result.result: "failure"`, rationale: "The conversation
+never reached a closing line ... and end_call was never called. The
+transcript hit the turn budget without completing the close. All required
+fields were collected and spelling was confirmed." The transcript showed the
+agent correctly collecting every field one at a time with zero re-asks, but
+early in the flow (right after only `policy_number` + `what_happened` were
+collected) the `Claim completeness before closing` guardrail fired and
+blocked the agent's response **three times in a row** before it recovered
+and asked for the date/time — each blocked attempt still consumed a turn of
+budget. By the time all 8 fields + name-spelling confirmation + the
+mandatory "another claim?" question were done, 10 turns were exhausted one
+question before the actual closing line. **Change:** raised
+`simulation_max_turns` to 20 in the test config and re-pushed (same
+`test_id`, `elevenlabs tests push` updates in place). **Result:** re-ran the
+identical scenario; passed cleanly — `condition_result.result: "success"`,
+"All required fields collected one at a time, no re-asking, spelling
+confirmed for both names, closing line delivered correctly ... end_call
+called after closing." **Status:** fixed (test-config change only; no
+`agent_configs/` edit).
+
+**2. Confirms guardrails DO fire on `simulation`-type tests run via
+`POST /v1/convai/agents/{id}/run-tests`** — both sanity-check runs show real
+`guardrail_triggered` tool calls with populated `trigger_reason`, not the
+`"Skipping tool call in test mode"` stub that TDD §5 documented for `llm`-type
+CLI/API test-mode runs. This doesn't contradict TDD §5 (that finding was
+specifically about `llm`-type test-mode evaluation) but it's new information
+worth noting: `simulation`-type tests are the first eval mechanism in this
+repo confirmed to actually exercise the `Claim completeness before closing`
+guardrail pre-production. TDD §5 and Known Issue #5 still stand as written
+for `llm` tests specifically; not broadening that claim here without a
+dedicated investigation, but flagging it since it's directly relevant to
+anyone extending `simulation` coverage next.
+
+**Note on test mechanics:** the CLI's `elevenlabs agents test <id> --no-ui`
+path requires the test to already be in the *live* agent's
+`attached_tests` (a pushed agent config). Since this task explicitly
+excludes running `elevenlabs agents push` (production push is CI's job via
+the `pr-test` branch), the sanity check above used a direct
+`POST /v1/convai/agents/{id}/run-tests` call with an explicit `test_id`
+instead — this works against the test object itself (already real, from
+`elevenlabs tests push`) without touching the agent's attached-tests list,
+and runs harmlessly against the live production branch without mutating
+anything.
+
 ## 2026-07-26 — Supervisor retirement rollout (ADR 0005): 3 fixes
 
 **Failing test(s):** Full 18-test Officer suite, multiple runs during rollout.

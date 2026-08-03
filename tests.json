@@ -91,6 +91,16 @@
             "id": "test_3001kyega5pzf11amm0v7b7xd6rj"
         },
         {
+            "config": "test_configs/Claims-Lodgement-Officer-wraps-up-after-2-attempt-retry-cap.json",
+            "id": "test_2701kz349q5gewdte703g5fm6fyj",
+            "type": "llm"
+        },
+        {
+            "config": "test_configs/Claims-Lodgement-Officer-vehicle-guided-flow-full-conversation.json",
+            "id": "test_2601kz34jff6edqa72x8wrf0n366",
+            "type": "simulation"
+        },
+        {
             "config": "test_configs/Claims-Lodgement-Officer-completes-whatsapp-claim-after-card-confirmation.json",
             "id": "test_8101kz2g94kfe0wbkzn7x2yhm13m",
             "type": "llm"
