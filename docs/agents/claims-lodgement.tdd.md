@@ -33,10 +33,34 @@ One registered ElevenLabs agent, `agents.json`:
   within two business days.") is the entire promise. See `CONTEXT.md`'s
   **Closing Message** and **Completeness Guardrail** entries.
 
+  **Text-only (WhatsApp) claim-summary-card (issue #64):** on a text-only
+  conversation, once a claim's fields are complete per the data-completeness
+  gate (§3), the Officer presents a plain text summary card of that claim's
+  captured fields — one `Label: value` line per field, no asterisks, no
+  bullet characters, no markdown headers, no emojis, digits for all numbers
+  — and requires the claimant's explicit confirmation before moving on to
+  ask about another claim or delivering the Closing Message. This happens
+  once per claim (a multi-claim session gets one card per claim, right after
+  that claim's own fields complete — not one consolidated card at the end).
+  A claimant-flagged correction re-collects just that field, then
+  re-presents the *complete* updated card (not a diff) and asks again. Card
+  confirmation is a deliberately separate gate from data completeness — see
+  §3 and the `text-summary-card-confirmation` prompt rule — kept distinct so
+  neither can silently substitute for the other. Voice calls are entirely
+  unaffected: no card, no extra confirmation step. An early triage draft of
+  this feature specified WhatsApp-markdown formatting (`*bold*`, `•`
+  bullets); that was reversed in favor of plain text before implementation
+  (see issue #64's "Correction — card format changed to plain text" comment)
+  — the card is plain text only, matching the behavior actually shipped.
+
   **Channel-aware response formatting (issue #63):** the Officer's `<tone>`
   prompt section splits number formatting by channel. On voice calls
   (`{{system__is_text_only}}` is false), numbers continue to be written as
-  words so they're TTS-readable — unchanged from prior behavior. On
+  words so they're TTS-readable — unchanged from prior behavior — except
+  phone/policy/registration numbers, which are read digit-by-digit (and
+  letter-by-letter for any letters), never collapsed into a whole or rounded
+  number (tightened during code review — see the Changelog entry below for
+  why "remain as digits" alone wasn't a strong enough instruction). On
   text-only (WhatsApp) conversations (`{{system__is_text_only}}` is true),
   ALL numbers are written as digits — this broadens the historical
   phone/policy/registration-only digit exception into the default for
@@ -48,7 +72,8 @@ One registered ElevenLabs agent, `agents.json`:
   remain plain prose on both channels; this does not introduce any
   line-per-field or bulleted layout. Explicitly out of scope: any
   markdown/emoji/structured-layout formatting, and the WhatsApp
-  claim-summary-card's own field layout (tracked separately in issue #64).
+  claim-summary-card's own field layout (tracked separately in issue #64,
+  above).
 
 **Layered defense** (reduced from ADR 0002's four layers to two, since the
 independent second-agent re-read no longer exists — see ADR 0005 for why
@@ -100,6 +125,29 @@ both names explicitly confirmed by the claimant in any form (agent guessing
 WhatsApp), the typed name is exact and no spelling confirmation is required.
 Any doubt on any item → treat as missing, ask for it, do not close.
 
+**Text-only claim-summary-card gate is separate from this one (issue #64).**
+This closing-condition rule is, and remains, a pure *data*-completeness
+check — it does not know or care whether a summary card was ever shown. On
+a text-only conversation, satisfying this rule is *necessary but not
+sufficient*: a second, independent prompt rule
+(`text-summary-card-confirmation`) additionally requires the plain text
+summary card to have been presented for that claim and explicitly confirmed
+by the claimant before the Officer may ask about another claim or deliver
+the Closing Message. The two gates are kept deliberately distinct rather
+than merged into one "complete" condition. This mirrors the lesson of the
+2026-07-22 incident described in §10's Changelog: a channel-conditional
+exception added to the main prompt behavior was silently missed by three
+independent enforcement layers (the `transfer_to_agent` condition, the
+completeness guardrail, and the eval criterion) that weren't updated in the
+same change, and the resulting bug shipped to production for over a week.
+For issue #64, every enforcement point that reasons about "is this claim
+ready to close" —
+the `closing-condition`, `text-summary-card-confirmation`, `closing-message`,
+`end-call-restriction`, and `multiple-claims` prompt rules, the `Claim
+completeness before closing` guardrail, and the `wraps-up-and-ends-call-
+when-complete` evaluation criterion — was updated together in the same
+change, specifically to not repeat that failure mode.
+
 ## 4. Session / Data Variables
 
 `platform_settings.data_collection`:
@@ -135,6 +183,25 @@ Any doubt on any item → treat as missing, ask for it, do not close.
   not require a spelling exchange. Exempt: Emergency, Wrong Number,
   Unresponsive Caller, WhatsApp Timeout. Feedback message quotes
   `{{trigger_reason}}` back to the agent.
+
+  **Extended for issue #64:** on a text-only conversation, this guardrail
+  additionally blocks a response that ends the call, speaks the Closing
+  Message, or moves on to ask about another claim, for a claim whose fields
+  are otherwise complete, unless the transcript shows a plain text summary
+  card was presented for that specific claim *and* the claimant explicitly
+  confirmed it afterward. A card that was presented but only met with a
+  correction (not a confirmation) does not satisfy this — the guardrail
+  treats the claim as unconfirmed until a full updated card was re-presented
+  and subsequently confirmed. This mirrors the `text-summary-card-
+  confirmation` prompt rule so the guardrail can't silently drift out of
+  sync with the prompt's actual text-only behavior (see §3's note on why
+  these two gates are updated together).
+
+  The evaluation criterion `wraps-up-and-ends-call-when-complete`
+  (`platform_settings.evaluation.criteria`) was extended the same way, for
+  the same reason — it now also fails a response that closes a text-only
+  claim without a confirmed summary card, not just one with a missing data
+  field.
 
 Prompt-level guardrail sections (not a platform guardrail — enforced by
 instruction text): Emergency, Non-Claims Inquiries, Wrong Number, Small
@@ -174,9 +241,10 @@ unset.
 
 Priority: **P0** (safety/compliance-critical) · **P1** (core UX) · **P2**
 (polish). Severity: **NO-GO** (ships broken = incident) · **HIGH** ·
-**MEDIUM** · **LOW**. All existing tests are type `llm` (single-response,
+**MEDIUM** · **LOW**. All tests below are type `llm` (single-response,
 judged against the *last* `chat_history` turn only — see
-`docs/agents/tdd-guide.md`).
+`docs/agents/tdd-guide.md`) except one `simulation` test (full-conversation,
+judged against the entire transcript), added 2026-08-03.
 
 | # | Story (PRD) | Eval Type | Test File | Priority | Severity | Tags |
 |---|---|---|---|---|---|---|
@@ -188,7 +256,7 @@ judged against the *last* `chat_history` turn only — see
 | 11 | Guided flow, one field at a time | `llm` | `collects-*-via-guided-flow` | P1 | MEDIUM | guided-flow |
 | 12 | Ask vehicle/property upfront | *(none)* | — platform `evaluation.criteria: asks-vehicle-or-property-upfront` exists but is analysis-only scoring, not a CI-gating test | P1 | MEDIUM | **GAP** |
 | 13 | Missing policy number (headless claim) | `llm` | `handles-missing-policy-number` | P0 | HIGH | best-effort-field |
-| 14 | 2-attempt cap then wrap up anyway | *(none)* | — | P1 | HIGH | **GAP** — retry-cap |
+| 14 | 2-attempt cap then wrap up anyway | `llm` | `wraps-up-after-2-attempt-retry-cap` | P1 | HIGH | retry-cap |
 | 15 | Multiple claims, one session | `llm` | `handles-multiple-claims` | P1 | MEDIUM | multi-claim |
 | 16–17 | Nominated representative | `llm` | `handles-nominated-representative` | P1 | MEDIUM | nominated-rep |
 | 18 | Emergency → 000, end call | `llm` | `handles-emergency-redirect` + negative case `treats-past-events-as-valid-claims` | P0 | NO-GO | emergency, safety |
@@ -199,11 +267,12 @@ judged against the *last* `chat_history` turn only — see
 | 25 | WhatsApp session timeout (1hr) | `llm` | `handles-whatsapp-session-timeout` | P1 | MEDIUM | whatsapp, timeout |
 | 26 | Wrong number | `llm` | `handles-wrong-number` | P1 | MEDIUM | redirect |
 | 27 | Small talk, steer back | `llm` | `steers-small-talk` | P2 | LOW | small-talk |
-| 29 | WhatsApp channel, full lodgement happy path | *(none — only the timeout edge case is WhatsApp-specific)* | — | P2 | LOW | **GAP** — channel |
+| 29 | WhatsApp channel, full lodgement happy path (incl. summary card presentation, confirmation, and correction — issue #64) | `llm` | `presents-whatsapp-summary-card`, `completes-whatsapp-claim-after-card-confirmation`, `recards-after-claimant-correction` | P1 | HIGH | whatsapp, channel, summary-card |
 | 30 | Phone channel | *(implicit — default context of all tests)* | — | — | — | covered generically |
 | 31 | Switch between text and voice mid-conversation | `llm` | `formats-numbers-as-digits-after-channel-switch-to-whatsapp`³, `keeps-phone-and-policy-numbers-as-digits-on-voice` | P2 | LOW | channel, formatting |
 | — | Officer closes exactly when complete (routing, not a numbered story) | `llm` | `completes-claim-and-ends-call` | P0 | HIGH | routing, closing |
 | — | Officer does not close or end call with a field still missing | `llm` | `does-not-close-with-missing-fields` | P0 | HIGH | routing, completeness |
+| — | Full greeting-to-close vehicle guided-flow conversation, no field re-asked (structural gap, not a numbered PRD story) | `simulation` | `vehicle-guided-flow-full-conversation` | P1 | HIGH | vehicle, guided-flow, ordering, simulation |
 
 ¹ Filename says "redirects-claim-status-inquiry" but the test's internal
 `name` field reads "...redirects non-claims inquiries **from greeting**" —
@@ -230,13 +299,20 @@ of re-checking `{{system__is_text_only}}` each turn). The literal
 "mid-conversation channel switch" mechanic remains untestable via `llm`/
 `simulation` test-mode, same limitation as story 24 (§9, Known Issue 3).
 
-**Structural gap, not row-specific:** every Officer `llm` test is a
-mid-conversation snapshot — `chat_history` primes prior turns, only the
-response to the *last* turn is judged. No test exercises a full
-greeting-to-close conversation end-to-end, so ordering bugs (e.g. the
-Officer re-asking a field it already has, three turns after collecting it)
-have no coverage. Per `docs/agents/tdd-guide.md`, this is exactly what
-`simulation`-type tests exist for; none are configured yet.
+**Structural gap, partially closed 2026-08-03:** every Officer `llm` test is
+a mid-conversation snapshot — `chat_history` primes prior turns, only the
+response to the *last* turn is judged. On its own this leaves ordering bugs
+(e.g. the Officer re-asking a field it already has, three turns after
+collecting it) with no coverage. Per `docs/agents/tdd-guide.md`, this is
+exactly what `simulation`-type tests exist for. A first one now exists —
+`vehicle-guided-flow-full-conversation` — covering the vehicle guided-flow
+happy path end-to-end (greeting through closing-message + `end_call`,
+asserting no field is ever re-asked). This is a start, not a close of the
+gap: it covers one flow (vehicle, guided-flow, cooperative claimant) out of
+several — property claims, express-lodgement ordering, multi-claim sessions,
+and WhatsApp/text-only conversations are all still snapshot-only. See
+`docs/agents/claims-lodgement.tdd.md`'s Coverage Map row above and Known
+Issue #4.
 
 ## 7. Test Data
 
@@ -264,6 +340,7 @@ rather than inventing new values, so transcripts stay easy to diff:
 |---|---|---|---|
 | 2026-07-12 | ADR 0003 redesign | 18/21 passing (officer: 18 tests, supervisor: 3 tests — supervisor since retired) | Relaxed name-spelling. Added `does-not-lodge-or-end-call` test. Updated transfer test. Officer end_call restricted to Emergency + Wrong Number only. |
 | 2026-07-26 | ADR 0005 — Supervisor retired | 16-18/18 typical (settled, after 3 fixes) | Supervisor removed; 3 Supervisor tests deleted; Officer gained `end_call` for Completed Claim, Unresponsive Caller, WhatsApp Timeout. Two tests renamed/rewritten (`completes-claim-and-ends-call`, `does-not-close-with-missing-fields`); several others had their transfer-fallback branches removed. Initial rollout was flaky (13/18) due to two live-state bugs (stale `transfer_to_agent` tool, orphaned workflow prompt injection — see `experiment_log.md` 2026-07-26 and ADR 0005's rollout incident section) plus test-mode channel ambiguity, all fixed same day. Remaining ~2/18 flakiness is ordinary evaluator variance (Known Issue #7). |
+| 2026-08-03 | First `simulation` test added (`vehicle-guided-flow-full-conversation`) | Officer now 19 tests, 18 `llm` + 1 `simulation` | New test failed once at `simulation_max_turns: 10` (turn budget exhausted one question before closing, not an agent defect — see `experiment_log.md`), passed cleanly at `simulation_max_turns: 20` on the immediate re-run. `llm` suite not re-run this session (no `agent_configs/` prompt/instruction change made — only `attached_tests`/`referenced_tests_ids` gained the new test ID). |
 
 Append a row after every CI run referenced in a debugging iteration (see
 `docs/agents/debugging-guide.md`) or before/after a Coverage Map change.
@@ -310,21 +387,48 @@ Append a row after every CI run referenced in a debugging iteration (see
    workflow references points at a deleted agent — worth re-checking whether
    the platform errors or silently no-ops on a workflow edge targeting a
    deleted agent ID, next time this is touched.**
-2. **No regression test for the Officer's 2-attempt retry cap** (story 14).
-   It's a prompt instruction only — no `test_configs/*.json` forces two
-   failed attempts and asserts "wrap up anyway" happens on the third.
+2. ~~**No regression test for the Officer's 2-attempt retry cap** (story 14).~~
+   **Closed 2026-08-03** — `wraps-up-after-2-attempt-retry-cap` forces two
+   failed attempts to collect contact method (every other required field,
+   including confirmed name spelling, already present) and asserts the
+   Officer wraps up with the closing message + `end_call` on the third turn
+   instead of asking again. Still only an `llm`-type test, so it's subject
+   to the same test-mode guardrail gap as everything else in §5 — it
+   exercises the Officer's own completeness-check judgment, not the
+   `Claim completeness before closing` guardrail (which never fires in
+   test-mode runs).
 3. **Story 24 (hang-up mid-lodgement fires the webhook with partial data)
    cannot be covered by `llm`/`simulation` chat tests at all** — it's a
    disconnect-triggered backend behavior, not a scripted response. Needs a
    different verification mechanism (e.g. an integration check against
    actual webhook delivery) once the webhook payload work in issue #2 lands
    — tracking it here so it isn't mistaken for a testable Coverage Map gap.
-4. **Zero `simulation`-type tests** — see the structural gap note in §6.
-5. **Guardrail test-mode coverage is confirmed absent** (was previously
-   listed as unverified) — see §5. The `Claim completeness before closing`
-   guardrail never fires in `llm`-type test runs; only a live call or
-   `simulate-conversation` exercises it. No CI-gating test protects this
-   layer.
+4. **`simulation`-type coverage: one test added 2026-08-03, most flows still
+   gap.** See the structural gap note in §6. `vehicle-guided-flow-full-conversation`
+   covers the vehicle guided-flow happy path only; property claims,
+   express-lodgement, multi-claim sessions, and WhatsApp/text-only
+   conversations remain untested end-to-end (only as `llm` snapshots).
+   Building the first one surfaced a schema/mechanics nuance worth recording
+   for whoever adds the next: `simulation_max_turns` needs headroom beyond
+   the literal number of question/answer exchanges — a `Claim completeness
+   before closing` guardrail retry (confirmed to actually fire on
+   `simulation` runs, unlike `llm` test-mode runs — see Known Issue #5)
+   consumes a turn without advancing the conversation, and 10 turns proved
+   too tight for an 8-field vehicle claim plus name-spelling confirmation
+   plus the mandatory "another claim?" question; 20 was sufficient. See
+   `experiment_log.md` 2026-08-03.
+5. **Guardrail test-mode coverage is confirmed absent for `llm`-type tests**
+   (was previously listed as unverified) — see §5. The `Claim completeness
+   before closing` guardrail never fires in `llm`-type test runs. **Update
+   2026-08-03:** confirmed the guardrail *does* fire on `simulation`-type
+   test runs via `POST /v1/convai/agents/{id}/run-tests` — real
+   `guardrail_triggered` tool calls with populated `trigger_reason` observed
+   twice while sanity-checking `vehicle-guided-flow-full-conversation` (see
+   `experiment_log.md` 2026-08-03). This doesn't change the `llm`-type
+   finding above, but it means `simulation` tests are the first CI-reachable
+   mechanism in this repo that actually exercises this guardrail layer —
+   still only for the one flow the new test covers, not a general claim
+   about coverage.
 6. Filename/content-name drift on `redirects-claim-status-inquiry.json`
    (§6, footnote 1) — low-severity but slows down triage.
 7. **`collects-vehicle-claim-via-guided-flow` and `handles-express-vehicle-claim`
@@ -357,9 +461,37 @@ Append a row after every CI run referenced in a debugging iteration (see
 - **2026-07-12 (post-ADR 0003)** — Relaxed name-spelling (accepts agent-guessing + claimant-confirming). Officer `end_call` restricted to Emergency + Wrong Number only; Unresponsive/Timeout now route via Supervisor. Added `Claims-Lodgement-Officer-does-not-lodge-or-end-call` test. Updated evaluation criteria (`verifies-name-spelling` → `confirms-name-spelling`). Supervisor now handles non-claim transfers. See `docs/adr/0003-officer-end-call-restriction.md`.
 - **2026-07-22** — Production trace review (conversation `conv_3001ky4r174yfggt53r26gtjazd6`, WhatsApp, contact `0404999621`) found the agent asking the claimant to confirm name-spelling letter-by-letter on a text-only WhatsApp conversation. Root cause: the 2026-07-12 channel-aware spelling fix (`a5c51bf`) only updated the main prompt's text-only exception — the `transfer_to_agent` condition, the `Claim completeness before closing` guardrail, and the `verifies-name-spelling`/`confirms-name-spelling` eval criterion (the rename itself never actually landed) were left requiring spelling confirmation unconditionally, so those three enforcement points overrode the prompt's correct "skip on text-only" instruction. Fixed all three to carry the same text-only exception; eval criterion renamed to `confirms-name-spelling` (completing the rename ADR 0003 had already decided).
   - While pushing the fix, discovered `elevenlabs agents push` was silently dropping the `transfer_to_agent` condition text specifically — two consecutive pushes left the live condition on stale, pre-2026-07-12 wording despite the local file and the push both reporting success. Confirmed via direct API fetch (eval criterion and guardrail persisted correctly on the same pushes; only `condition` didn't). Worked around with a direct API `PATCH` (documented in the repo's `CLAUDE.md` Local↔Platform Sync Fields section); `scripts/verify-live-tools.py` extended to diff local vs. live condition text per transfer target so this can't silently drift again.
-  - §6 gap "29 | WhatsApp channel, full lodgement happy path" is the coverage hole that let the original spelling bug ship — still open, should be closed with a WhatsApp-channel express-lodgement test asserting NO spelling question is asked.
+  - §6 gap "29 | WhatsApp channel, full lodgement happy path" is the coverage hole that let the original spelling bug ship — still open, should be closed with a WhatsApp-channel express-lodgement test asserting NO spelling question is asked. **Closed 2026-08-03 by issue #64** — see that changelog entry below.
   - Also investigated a separate report of WhatsApp sessions with no delivered greeting (three consecutive sessions, `cost: 0`, "Client disconnected: 1000" within 6–14s). Attempted to remove the orphaned `workflow` block (Known Issue #1) as the leading repo-controllable suspect via `PATCH {"workflow": null}`; the platform silently ignored it. Confirmed `edges: {}` means the workflow is unreachable from `start_node` regardless, so it's unlikely to be the actual cause — issue remains unresolved and open, likely a WhatsApp/Meta-side delivery problem outside this repo.
 - **2026-07-26** — Claims Lodgement Supervisor retired (ADR 0005): the flow no longer promises a claim number or lodgement email, so the independent second-agent completeness re-read was judged to protect nothing a same-agent guardrail couldn't. Officer absorbed all closing responsibility — `end_call` now covers Completed Claim, Unresponsive Caller, and WhatsApp Timeout in addition to Emergency and Wrong Number. New Closing Message: "I've recorded your details. Our team will be in touch within two business days." `transfer_to_agent` removed from the Officer's tool set. Architecture, Tools, Routing, Guardrails, and Coverage Map sections rewritten for the single-agent shape; Utility/Telecom Customer Intake agent (unrelated, separate flow) also removed from this repo in the same session.
+- **2026-08-03** — Closed Coverage Map gap for story 14 (2-attempt cap then wrap up anyway), the highest-severity untested behavior in the flow (P1/HIGH, zero coverage — Known Issue #2). Added `test_configs/Claims-Lodgement-Officer-wraps-up-after-2-attempt-retry-cap.json` (`test_2701kz349q5gewdte703g5fm6fyj`): a vehicle claim where every required field except contact method is present (including confirmed name spelling on a pinned voice call), the Officer has already asked for contact method twice and been deflected twice, and the correct response to a third deflection is to skip a third ask and instead deliver the closing message + `end_call`, per the `completeness-check` rule's "maximum 2 attempts per missing field" clause. Deliberately avoided policy number as the missing field since `closing-condition` already exempts it as best-effort — this test needed a field with no separate exemption, to isolate the retry-cap behavior itself. Registered in both `attached_tests` and `referenced_tests_ids` on the Officer's agent config.
+- **2026-08-03** — Added the repo's first `simulation`-type test,
+  `test_configs/Claims-Lodgement-Officer-vehicle-guided-flow-full-conversation.json`
+  (`test_2601kz34jff6edqa72x8wrf0n366`), closing part of the §6 structural
+  gap / Known Issue #4: a cooperative-claimant vehicle guided-flow
+  conversation judged end-to-end (greeting through closing-message +
+  `end_call`) for zero repeated field-asks, all required fields collected,
+  and a correctly-worded close. Companion fix to
+  `scripts/validate-configs.py`: the `chat_history` non-empty-array check
+  now only applies to `llm`/`tool` tests; `simulation` tests are validated
+  for a non-empty `simulation_scenario` instead (an empty `chat_history` is
+  the normal fresh-start case for a simulation, and the old check would have
+  hard-failed every simulation test in CI). Sanity-checking the new test
+  live surfaced two things not predicted going in — both logged in
+  `experiment_log.md` 2026-08-03: (1) `simulation_max_turns: 10` was too
+  tight (guardrail retries consume turns without advancing the
+  conversation; raised to 20), and (2) the `Claim completeness before
+  closing` guardrail is confirmed to actually fire on `simulation`-type
+  `run-tests` calls, unlike the confirmed-absent case for `llm`-type
+  test-mode runs (Known Issue #5, updated). This is a start on the
+  structural gap, not a close of it — see the §6 gap note and Known Issue
+  #4 for what's still snapshot-only (property claims, express-lodgement,
+  multi-claim sessions, WhatsApp/text-only).
+- **2026-08-03 (issue #64)** — Added the text-only (WhatsApp) claim-summary-card: once a claim's fields are complete, the Officer presents a plain text summary (one `Label: value` line per captured field, no markdown, no emojis, digits for numbers, policy number omitted entirely if not provided) and requires explicit claimant confirmation before moving on to ask about another claim or deliver the Closing Message, once per claim. A claimant correction re-collects just that field and re-presents the *full* updated card. An early triage draft (the "Agent Brief" comment on #64) specified WhatsApp-markdown formatting; that was reversed to plain text before implementation by a follow-up "Correction" comment on the same issue — the shipped behavior is plain text only.
+  - New `<procedure id="claim-summary-card">` and `<rule id="text-summary-card-confirmation">` added to the prompt; `closing-message`, `end-call-restriction`, and `multiple-claims` rules updated to require the text-only card gate in addition to (not merged with) the existing `closing-condition` data-completeness gate — see §3's note on why the two gates stay separate. Learning from the 2026-07-22 incident (above): every enforcement point reasoning about "is this claim ready to close" was grepped and updated in the same change, not just the primary prompt instruction — this included the `Claim completeness before closing` guardrail and the `wraps-up-and-ends-call-when-complete` eval criterion (§5).
+  - Closed Coverage Map gap #29 (WhatsApp full lodgement happy path) with three new `llm` tests: `Claims-Lodgement-Officer-presents-whatsapp-summary-card` (card presentation + format), `Claims-Lodgement-Officer-completes-whatsapp-claim-after-card-confirmation` (confirmation → no-more-claims → Closing Message/`end_call`), and `Claims-Lodgement-Officer-recards-after-claimant-correction` (correction → full re-presented card). All three pin `conversation_initiation_source: "whatsapp"` per the Test-mode channel pinning note above.
+  - As with the rest of this guardrail layer, the text-only card-confirmation gate has no test-mode coverage — see §5 and Known Issue #5's note that guardrails don't fire in CLI/API test-mode runs; the three new `llm` tests exercise only the prompt's raw, first-pass behavior, not the guardrail's corrective retry.
+  - A dedicated evaluation criterion for the card behavior itself (beyond the `wraps-up-and-ends-call-when-complete` extension above) is intentionally out of scope here — tracked separately in issue #67, blocked on this change landing first.
 - **2026-08-03 (issue #63)** — Channel-aware response formatting. Split the `<tone>` section's number-formatting bullet by channel: voice calls keep writing numbers as words (unchanged); text-only (WhatsApp) conversations now write ALL numbers as digits, broadening the old phone/policy/registration-only digit exception into the text-only default. Added a new, channel-independent `no-markdown-formatting` prompt rule blocking markdown symbols (asterisks, bullets, headers, etc.) in every response on both channels — a guard against model drift, not a description of prior behavior. An early triage draft of this issue proposed WhatsApp markdown/emoji formatting; that was rejected during triage grilling (settled jointly with issue #64) in favor of plain prose on both channels — see the issue's "Agent Brief" comment. Deliberately scoped away from `closing-condition`, `closing-message`, `end-call-restriction`, `multiple-claims`, the `Claim completeness before closing` guardrail, and the `wraps-up-and-ends-call-when-complete` eval criterion — those are issue #64's (WhatsApp claim-summary-card) territory, kept untouched here so the two changes merge independently. Closed §6 gap "31 | Switch between text and voice mid-conversation" with `Claims-Lodgement-Officer-formats-numbers-as-digits-after-channel-switch-to-whatsapp` (see §6 footnote 3 for the CLI's single-channel-per-test limitation on what "closed" means here). New test registered via `elevenlabs tests push` (`test_3901kz2gz6pmey892jr524tp7nev`) and attached to the Officer's `platform_settings.testing.attached_tests`.
   - **Code-review fix (same day)**: the initial `<tone>` rewrite dropped the pre-existing "phone numbers, policy numbers, and registration numbers remain as digits" exception from the voice branch — a real regression that would have had the agent spell out phone/policy/registration numbers as words on voice calls, which the issue's brief explicitly required to stay unchanged. Caught during code review (Spec axis) before merge, not by CI — no test exercised phone-number formatting on a voice call. Restored the exception to the voice branch and added `Claims-Lodgement-Officer-keeps-phone-and-policy-numbers-as-digits-on-voice` (registered via `elevenlabs tests push`, `test_5401kz2hpmpaen3rgf0k9x81ce9g`, attached) to close that coverage hole going forward.
   - **Follow-up tightening (same day)**: "remain as digits" was ambiguous about *how* they should sound — it only constrains the agent's text output and relies on the TTS layer reading a digit string naturally, which is a much safer assumption for a spaced phone number ("0404 991 625") than for a contiguous run like a policy number's "204958". Reworded the voice exception to explicitly require digit-by-digit (and letter-by-letter) reading, never collapsed into a whole/rounded number, while still allowing either a digit-string or spelled-out-digit-by-digit text form. Documented the residual gap as Known Issue #8 (§9): this is a structural limitation of `llm`/`simulation` test types (they judge transcript text, not rendered audio), not something a better-written test can close — only a manual voice-call listen-through can actually confirm correct pronunciation.

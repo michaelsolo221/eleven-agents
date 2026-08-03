@@ -91,6 +91,31 @@
             "id": "test_3001kyega5pzf11amm0v7b7xd6rj"
         },
         {
+            "config": "test_configs/Claims-Lodgement-Officer-wraps-up-after-2-attempt-retry-cap.json",
+            "id": "test_2701kz349q5gewdte703g5fm6fyj",
+            "type": "llm"
+        },
+        {
+            "config": "test_configs/Claims-Lodgement-Officer-vehicle-guided-flow-full-conversation.json",
+            "id": "test_2601kz34jff6edqa72x8wrf0n366",
+            "type": "simulation"
+        },
+        {
+            "config": "test_configs/Claims-Lodgement-Officer-completes-whatsapp-claim-after-card-confirmation.json",
+            "id": "test_8101kz2g94kfe0wbkzn7x2yhm13m",
+            "type": "llm"
+        },
+        {
+            "config": "test_configs/Claims-Lodgement-Officer-presents-whatsapp-summary-card.json",
+            "id": "test_3101kz2g95d1e5fvk3e4fkd4v68a",
+            "type": "llm"
+        },
+        {
+            "config": "test_configs/Claims-Lodgement-Officer-recards-after-claimant-correction.json",
+            "id": "test_0201kz2g95qce559jenknve5zype",
+            "type": "llm"
+        },
+        {
             "config": "test_configs/Claims-Lodgement-Officer-formats-numbers-as-digits-after-channel-switch-to-whatsapp.json",
             "id": "test_3901kz2gz6pmey892jr524tp7nev",
             "type": "llm"
