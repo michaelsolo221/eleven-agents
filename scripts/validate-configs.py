@@ -89,10 +89,17 @@ for entry in test_list:
     for field in ("name", "type", "chat_history", "success_condition"):
         if field not in data:
             fail(f"{entry['config']}: missing '{field}'")
-    # chat_history must be non-empty array
-    history = data.get("chat_history", [])
-    if not isinstance(history, list) or len(history) == 0:
-        fail(f"{entry['config']}: 'chat_history' must be a non-empty array")
+    # chat_history must be non-empty array — except for `simulation` tests,
+    # where an empty array is the normal fresh-start case (the simulated
+    # user persona drives the conversation instead of scripted turns).
+    if data.get("type") != "simulation":
+        history = data.get("chat_history", [])
+        if not isinstance(history, list) or len(history) == 0:
+            fail(f"{entry['config']}: 'chat_history' must be a non-empty array")
+    else:
+        scenario = data.get("simulation_scenario")
+        if not isinstance(scenario, str) or not scenario.strip():
+            fail(f"{entry['config']}: 'simulation' test missing non-empty 'simulation_scenario'")
     ok(f"{entry['config']}")
 
 # --- 5. Check for orphaned files ---

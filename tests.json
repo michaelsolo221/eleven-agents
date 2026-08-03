@@ -94,6 +94,11 @@
             "config": "test_configs/Claims-Lodgement-Officer-wraps-up-after-2-attempt-retry-cap.json",
             "id": "test_2701kz349q5gewdte703g5fm6fyj",
             "type": "llm"
+        },
+        {
+            "config": "test_configs/Claims-Lodgement-Officer-vehicle-guided-flow-full-conversation.json",
+            "id": "test_2601kz34jff6edqa72x8wrf0n366",
+            "type": "simulation"
         }
     ]
 }
