@@ -53,6 +53,28 @@ One registered ElevenLabs agent, `agents.json`:
   (see issue #64's "Correction — card format changed to plain text" comment)
   — the card is plain text only, matching the behavior actually shipped.
 
+  **Channel-aware response formatting (issue #63):** the Officer's `<tone>`
+  prompt section splits number formatting by channel. On voice calls
+  (`{{system__is_text_only}}` is false), numbers continue to be written as
+  words so they're TTS-readable — unchanged from prior behavior — except
+  phone/policy/registration numbers, which are read digit-by-digit (and
+  letter-by-letter for any letters), never collapsed into a whole or rounded
+  number (tightened during code review — see the Changelog entry below for
+  why "remain as digits" alone wasn't a strong enough instruction). On
+  text-only (WhatsApp) conversations (`{{system__is_text_only}}` is true),
+  ALL numbers are written as digits — this broadens the historical
+  phone/policy/registration-only digit exception into the default for
+  text-only, rather than a narrow channel-independent carve-out. Separately,
+  a new channel-independent `no-markdown-formatting` prompt rule blocks
+  markdown formatting symbols (asterisks, bullet characters, headers, etc.)
+  in every response, on both channels — a guard against model drift, not a
+  description of a prior behavior difference. Ordinary conversational turns
+  remain plain prose on both channels; this does not introduce any
+  line-per-field or bulleted layout. Explicitly out of scope: any
+  markdown/emoji/structured-layout formatting, and the WhatsApp
+  claim-summary-card's own field layout (tracked separately in issue #64,
+  above).
+
 **Layered defense** (reduced from ADR 0002's four layers to two, since the
 independent second-agent re-read no longer exists — see ADR 0005 for why
 that was judged an acceptable trade):
@@ -247,7 +269,7 @@ judged against the entire transcript), added 2026-08-03.
 | 27 | Small talk, steer back | `llm` | `steers-small-talk` | P2 | LOW | small-talk |
 | 29 | WhatsApp channel, full lodgement happy path (incl. summary card presentation, confirmation, and correction — issue #64) | `llm` | `presents-whatsapp-summary-card`, `completes-whatsapp-claim-after-card-confirmation`, `recards-after-claimant-correction` | P1 | HIGH | whatsapp, channel, summary-card |
 | 30 | Phone channel | *(implicit — default context of all tests)* | — | — | — | covered generically |
-| 31 | Switch between text and voice mid-conversation | *(none)* | — | P2 | LOW | **GAP** — channel |
+| 31 | Switch between text and voice mid-conversation | `llm` | `formats-numbers-as-digits-after-channel-switch-to-whatsapp`³, `keeps-phone-and-policy-numbers-as-digits-on-voice` | P2 | LOW | channel, formatting |
 | — | Officer closes exactly when complete (routing, not a numbered story) | `llm` | `completes-claim-and-ends-call` | P0 | HIGH | routing, closing |
 | — | Officer does not close or end call with a field still missing | `llm` | `does-not-close-with-missing-fields` | P0 | HIGH | routing, completeness |
 | — | Full greeting-to-close vehicle guided-flow conversation, no field re-asked (structural gap, not a numbered PRD story) | `simulation` | `vehicle-guided-flow-full-conversation` | P1 | HIGH | vehicle, guided-flow, ordering, simulation |
@@ -262,6 +284,20 @@ story 28 (clearly-not-lodging-and-not-a-non-claims-inquiry) are three
 distinct guardrail branches sharing one redirect number and, effectively,
 two tests — the boundary between "non-claims inquiry" and "not lodging,
 not inquiring either" isn't tested as a distinct case.
+
+³ Closed with a single-channel test, not a literal live channel handoff —
+the CLI's `conversation_initiation_source` pins one channel per test run,
+so there's no way to script an actual mid-call voice-to-WhatsApp switch
+through this schema. The test instead opens `chat_history` with the
+claimant stating they're continuing a claim started on a phone call, pinned
+`conversation_initiation_source: "whatsapp"`, several turns into the
+conversation (not a fresh greeting), and asserts the channel-conditional
+number-formatting rule (§1) holds on the current channel for an
+already-in-progress claim — the specific regression risk story 31 was
+tracking (an agent that locks into whatever format it started with instead
+of re-checking `{{system__is_text_only}}` each turn). The literal
+"mid-conversation channel switch" mechanic remains untestable via `llm`/
+`simulation` test-mode, same limitation as story 24 (§9, Known Issue 3).
 
 **Structural gap, partially closed 2026-08-03:** every Officer `llm` test is
 a mid-conversation snapshot — `chat_history` primes prior turns, only the
@@ -400,6 +436,21 @@ Append a row after every CI run referenced in a debugging iteration (see
    channel pinned) — reads as ordinary LLM-evaluator variance on a
    borderline-complete transcript, not a regression, but worth a wording
    pass if it doesn't settle.
+8. **Digit-by-digit reading of phone/policy/registration numbers on voice
+   is prompt-instructed but not test-verifiable.** The `<tone>` rule tells
+   the agent to read these identifiers digit-by-digit (and letter-by-letter
+   for any letters), never collapsed into a whole/rounded number — but this
+   only constrains the agent's *text* output. Every test in this suite is
+   `llm`/`simulation` type, judged against the transcript text the LLM
+   produces, not the audio the TTS layer actually renders from it. A
+   contiguous digit run (e.g. a policy number's "204958", with no internal
+   spacing) is exactly the shape most at risk of a TTS engine reading it as
+   one large number regardless of how explicit the prompt instruction is —
+   and nothing in this repo's automated suite would catch that failure mode.
+   The only way to confirm correct pronunciation is a manual voice-call
+   listen-through; this is a structural limitation of the `llm`/`simulation`
+   test types, not a coverage gap that can be closed with a better-written
+   test.
 
 ## 10. Changelog
 
@@ -441,3 +492,6 @@ Append a row after every CI run referenced in a debugging iteration (see
   - Closed Coverage Map gap #29 (WhatsApp full lodgement happy path) with three new `llm` tests: `Claims-Lodgement-Officer-presents-whatsapp-summary-card` (card presentation + format), `Claims-Lodgement-Officer-completes-whatsapp-claim-after-card-confirmation` (confirmation → no-more-claims → Closing Message/`end_call`), and `Claims-Lodgement-Officer-recards-after-claimant-correction` (correction → full re-presented card). All three pin `conversation_initiation_source: "whatsapp"` per the Test-mode channel pinning note above.
   - As with the rest of this guardrail layer, the text-only card-confirmation gate has no test-mode coverage — see §5 and Known Issue #5's note that guardrails don't fire in CLI/API test-mode runs; the three new `llm` tests exercise only the prompt's raw, first-pass behavior, not the guardrail's corrective retry.
   - A dedicated evaluation criterion for the card behavior itself (beyond the `wraps-up-and-ends-call-when-complete` extension above) is intentionally out of scope here — tracked separately in issue #67, blocked on this change landing first.
+- **2026-08-03 (issue #63)** — Channel-aware response formatting. Split the `<tone>` section's number-formatting bullet by channel: voice calls keep writing numbers as words (unchanged); text-only (WhatsApp) conversations now write ALL numbers as digits, broadening the old phone/policy/registration-only digit exception into the text-only default. Added a new, channel-independent `no-markdown-formatting` prompt rule blocking markdown symbols (asterisks, bullets, headers, etc.) in every response on both channels — a guard against model drift, not a description of prior behavior. An early triage draft of this issue proposed WhatsApp markdown/emoji formatting; that was rejected during triage grilling (settled jointly with issue #64) in favor of plain prose on both channels — see the issue's "Agent Brief" comment. Deliberately scoped away from `closing-condition`, `closing-message`, `end-call-restriction`, `multiple-claims`, the `Claim completeness before closing` guardrail, and the `wraps-up-and-ends-call-when-complete` eval criterion — those are issue #64's (WhatsApp claim-summary-card) territory, kept untouched here so the two changes merge independently. Closed §6 gap "31 | Switch between text and voice mid-conversation" with `Claims-Lodgement-Officer-formats-numbers-as-digits-after-channel-switch-to-whatsapp` (see §6 footnote 3 for the CLI's single-channel-per-test limitation on what "closed" means here). New test registered via `elevenlabs tests push` (`test_3901kz2gz6pmey892jr524tp7nev`) and attached to the Officer's `platform_settings.testing.attached_tests`.
+  - **Code-review fix (same day)**: the initial `<tone>` rewrite dropped the pre-existing "phone numbers, policy numbers, and registration numbers remain as digits" exception from the voice branch — a real regression that would have had the agent spell out phone/policy/registration numbers as words on voice calls, which the issue's brief explicitly required to stay unchanged. Caught during code review (Spec axis) before merge, not by CI — no test exercised phone-number formatting on a voice call. Restored the exception to the voice branch and added `Claims-Lodgement-Officer-keeps-phone-and-policy-numbers-as-digits-on-voice` (registered via `elevenlabs tests push`, `test_5401kz2hpmpaen3rgf0k9x81ce9g`, attached) to close that coverage hole going forward.
+  - **Follow-up tightening (same day)**: "remain as digits" was ambiguous about *how* they should sound — it only constrains the agent's text output and relies on the TTS layer reading a digit string naturally, which is a much safer assumption for a spaced phone number ("0404 991 625") than for a contiguous run like a policy number's "204958". Reworded the voice exception to explicitly require digit-by-digit (and letter-by-letter) reading, never collapsed into a whole/rounded number, while still allowing either a digit-string or spelled-out-digit-by-digit text form. Documented the residual gap as Known Issue #8 (§9): this is a structural limitation of `llm`/`simulation` test types (they judge transcript text, not rendered audio), not something a better-written test can close — only a manual voice-call listen-through can actually confirm correct pronunciation.

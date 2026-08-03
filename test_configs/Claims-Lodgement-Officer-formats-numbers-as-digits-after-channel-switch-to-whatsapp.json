@@ -1,0 +1,47 @@
+{
+    "name": "Claims Lodgement Officer formats numbers as digits after switching to WhatsApp mid-claim",
+    "type": "llm",
+    "conversation_initiation_source": "whatsapp",
+    "chat_history": [
+        {
+            "role": "user",
+            "time_in_call_secs": 5,
+            "message": "Hi, I started lodging this on a call earlier but got disconnected, so I'm picking it back up here on WhatsApp. It's a property claim, policy POL-204958."
+        },
+        {
+            "role": "user",
+            "time_in_call_secs": 15,
+            "message": "There was a break-in at 207 Example Street, Perth on the 3rd of March around 9pm. You can reach me on 0433 221 190, name Daniel Ross."
+        },
+        {
+            "role": "user",
+            "time_in_call_secs": 25,
+            "message": "Can you read back the address you've got for me, just to double check?"
+        }
+    ],
+    "success_condition": "This is a text-only WhatsApp conversation (system__is_text_only is true) where the claimant says they are continuing a claim they started on a phone call, then asks the agent to read back the property address. Per the channel-specific number formatting rule, on text-only conversations ALL numbers must be written as digits, not spelled out as words — this applies to every number, not only phone/policy/registration numbers, which is a broader rule than writing numbers as words for voice. The agent's response must state the street number as a digit (e.g. '207'), not as words (e.g. 'two hundred and seven' or 'two-oh-seven'). The response must also contain no markdown formatting symbols (no asterisks, no bullet characters, no headers) — plain prose only, not a line-per-field layout.",
+    "success_examples": [
+        {
+            "response": "Yep, I've got 207 Example Street, Perth for you — is that right?",
+            "type": "success"
+        },
+        {
+            "response": "Sure — that's 207 Example Street, Perth, contact 0433 221 190 for Daniel Ross. Let me know if anything needs fixing.",
+            "type": "success"
+        }
+    ],
+    "failure_examples": [
+        {
+            "response": "Sure, I have two hundred and seven Example Street, Perth on file.",
+            "type": "failure"
+        },
+        {
+            "response": "Sure — that's two-oh-seven Example Street, Perth, is that correct?",
+            "type": "failure"
+        },
+        {
+            "response": "Here's what I have:\n*Address:* 207 Example Street, Perth\n*Contact:* 0433 221 190",
+            "type": "failure"
+        }
+    ]
+}
