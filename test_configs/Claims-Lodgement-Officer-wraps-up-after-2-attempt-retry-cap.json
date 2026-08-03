@@ -1,0 +1,82 @@
+{
+    "name": "Claims Lodgement Officer wraps up after 2-attempt retry cap on missing field",
+    "type": "llm",
+    "conversation_initiation_source": "twilio",
+    "chat_history": [
+        {
+            "role": "user",
+            "time_in_call_secs": 5,
+            "message": "I need to lodge a vehicle claim. My car was rear-ended at a red light."
+        },
+        {
+            "role": "user",
+            "time_in_call_secs": 15,
+            "message": "Policy number is POL-334455, registration ABC-987."
+        },
+        {
+            "role": "user",
+            "time_in_call_secs": 25,
+            "message": "It happened yesterday around three pm, at the corner of King Street and George Street in Sydney."
+        },
+        {
+            "role": "user",
+            "time_in_call_secs": 35,
+            "message": "My name's James Murphy."
+        },
+        {
+            "role": "agent",
+            "time_in_call_secs": 40,
+            "message": "Thanks James — just to confirm, is that spelled J-A-M-E-S, M-U-R-P-H-Y?"
+        },
+        {
+            "role": "user",
+            "time_in_call_secs": 45,
+            "message": "Yep, that's right."
+        },
+        {
+            "role": "agent",
+            "time_in_call_secs": 50,
+            "message": "Great. And what's the best way to reach you — an email address or a phone number?"
+        },
+        {
+            "role": "user",
+            "time_in_call_secs": 55,
+            "message": "Do we really need that? Can we just skip ahead?"
+        },
+        {
+            "role": "agent",
+            "time_in_call_secs": 60,
+            "message": "I do need some way to follow up with you — could I get an email address or a phone number?"
+        },
+        {
+            "role": "user",
+            "time_in_call_secs": 65,
+            "message": "Honestly, let's just leave it there."
+        }
+    ],
+    "success_condition": "Every required field for this vehicle claim has already been explicitly stated EXCEPT contact method: claim type, what happened, policy number, registration, date/time, incident location, and first/last name with spelling explicitly confirmed by the claimant on this voice call are all present in the transcript. The agent has now asked for a contact method (email or phone) twice, and the claimant has deflected both times without providing one. Per the completeness-check rule's 2-attempt cap, the agent must NOT ask for the contact method a third time. Instead, since every other field is present, the agent must treat this as the 'wrap up with whatever information is available' case: deliver something equivalent to the closing message ('I've recorded your details. Our team will be in touch within two business days.') and end the call. The agent must NOT say the claim has been lodged, must NOT mention a claim number, and must NOT promise an email confirmation.",
+    "success_examples": [
+        {
+            "response": "No problem, I'll leave it there. I've recorded your details — our team will be in touch within two business days.",
+            "type": "success"
+        },
+        {
+            "response": "That's alright, James. I've got everything else I need. I've recorded your details, and our team will be in touch within two business days.",
+            "type": "success"
+        }
+    ],
+    "failure_examples": [
+        {
+            "response": "I understand, but I really do need an email address or phone number to follow up with you — could you provide one?",
+            "type": "failure"
+        },
+        {
+            "response": "Just one more time — could you give me an email address or a phone number so we can reach you?",
+            "type": "failure"
+        },
+        {
+            "response": "I can't proceed without a contact method. Please give me an email or phone number.",
+            "type": "failure"
+        }
+    ]
+}

@@ -171,7 +171,7 @@ judged against the *last* `chat_history` turn only — see
 | 11 | Guided flow, one field at a time | `llm` | `collects-*-via-guided-flow` | P1 | MEDIUM | guided-flow |
 | 12 | Ask vehicle/property upfront | *(none)* | — platform `evaluation.criteria: asks-vehicle-or-property-upfront` exists but is analysis-only scoring, not a CI-gating test | P1 | MEDIUM | **GAP** |
 | 13 | Missing policy number (headless claim) | `llm` | `handles-missing-policy-number` | P0 | HIGH | best-effort-field |
-| 14 | 2-attempt cap then wrap up anyway | *(none)* | — | P1 | HIGH | **GAP** — retry-cap |
+| 14 | 2-attempt cap then wrap up anyway | `llm` | `wraps-up-after-2-attempt-retry-cap` | P1 | HIGH | retry-cap |
 | 15 | Multiple claims, one session | `llm` | `handles-multiple-claims` | P1 | MEDIUM | multi-claim |
 | 16–17 | Nominated representative | `llm` | `handles-nominated-representative` | P1 | MEDIUM | nominated-rep |
 | 18 | Emergency → 000, end call | `llm` | `handles-emergency-redirect` + negative case `treats-past-events-as-valid-claims` | P0 | NO-GO | emergency, safety |
@@ -279,9 +279,16 @@ Append a row after every CI run referenced in a debugging iteration (see
    workflow references points at a deleted agent — worth re-checking whether
    the platform errors or silently no-ops on a workflow edge targeting a
    deleted agent ID, next time this is touched.**
-2. **No regression test for the Officer's 2-attempt retry cap** (story 14).
-   It's a prompt instruction only — no `test_configs/*.json` forces two
-   failed attempts and asserts "wrap up anyway" happens on the third.
+2. ~~**No regression test for the Officer's 2-attempt retry cap** (story 14).~~
+   **Closed 2026-08-03** — `wraps-up-after-2-attempt-retry-cap` forces two
+   failed attempts to collect contact method (every other required field,
+   including confirmed name spelling, already present) and asserts the
+   Officer wraps up with the closing message + `end_call` on the third turn
+   instead of asking again. Still only an `llm`-type test, so it's subject
+   to the same test-mode guardrail gap as everything else in §5 — it
+   exercises the Officer's own completeness-check judgment, not the
+   `Claim completeness before closing` guardrail (which never fires in
+   test-mode runs).
 3. **Story 24 (hang-up mid-lodgement fires the webhook with partial data)
    cannot be covered by `llm`/`simulation` chat tests at all** — it's a
    disconnect-triggered backend behavior, not a scripted response. Needs a
@@ -314,3 +321,4 @@ Append a row after every CI run referenced in a debugging iteration (see
   - §6 gap "29 | WhatsApp channel, full lodgement happy path" is the coverage hole that let the original spelling bug ship — still open, should be closed with a WhatsApp-channel express-lodgement test asserting NO spelling question is asked.
   - Also investigated a separate report of WhatsApp sessions with no delivered greeting (three consecutive sessions, `cost: 0`, "Client disconnected: 1000" within 6–14s). Attempted to remove the orphaned `workflow` block (Known Issue #1) as the leading repo-controllable suspect via `PATCH {"workflow": null}`; the platform silently ignored it. Confirmed `edges: {}` means the workflow is unreachable from `start_node` regardless, so it's unlikely to be the actual cause — issue remains unresolved and open, likely a WhatsApp/Meta-side delivery problem outside this repo.
 - **2026-07-26** — Claims Lodgement Supervisor retired (ADR 0005): the flow no longer promises a claim number or lodgement email, so the independent second-agent completeness re-read was judged to protect nothing a same-agent guardrail couldn't. Officer absorbed all closing responsibility — `end_call` now covers Completed Claim, Unresponsive Caller, and WhatsApp Timeout in addition to Emergency and Wrong Number. New Closing Message: "I've recorded your details. Our team will be in touch within two business days." `transfer_to_agent` removed from the Officer's tool set. Architecture, Tools, Routing, Guardrails, and Coverage Map sections rewritten for the single-agent shape; Utility/Telecom Customer Intake agent (unrelated, separate flow) also removed from this repo in the same session.
+- **2026-08-03** — Closed Coverage Map gap for story 14 (2-attempt cap then wrap up anyway), the highest-severity untested behavior in the flow (P1/HIGH, zero coverage — Known Issue #2). Added `test_configs/Claims-Lodgement-Officer-wraps-up-after-2-attempt-retry-cap.json` (`test_2701kz349q5gewdte703g5fm6fyj`): a vehicle claim where every required field except contact method is present (including confirmed name spelling on a pinned voice call), the Officer has already asked for contact method twice and been deflected twice, and the correct response to a third deflection is to skip a third ask and instead deliver the closing message + `end_call`, per the `completeness-check` rule's "maximum 2 attempts per missing field" clause. Deliberately avoided policy number as the missing field since `closing-condition` already exempts it as best-effort — this test needed a field with no separate exemption, to isolate the retry-cap behavior itself. Registered in both `attached_tests` and `referenced_tests_ids` on the Officer's agent config.

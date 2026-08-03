@@ -89,6 +89,11 @@
             "config": "test_configs/Claims-Lodgement-Officer-does-not-close-with-missing-fields.json",
             "type": "llm",
             "id": "test_3001kyega5pzf11amm0v7b7xd6rj"
+        },
+        {
+            "config": "test_configs/Claims-Lodgement-Officer-wraps-up-after-2-attempt-retry-cap.json",
+            "id": "test_2701kz349q5gewdte703g5fm6fyj",
+            "type": "llm"
         }
     ]
 }
