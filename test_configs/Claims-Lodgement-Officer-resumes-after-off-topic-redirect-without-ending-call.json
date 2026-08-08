@@ -1,0 +1,52 @@
+{
+    "name": "Claims Lodgement Officer resumes claim after off-topic redirect without ending call",
+    "type": "llm",
+    "conversation_initiation_source": "twilio",
+    "chat_history": [
+        {
+            "role": "agent",
+            "time_in_call_secs": 0,
+            "message": "Hi, my name is Amanda. You've reached CGU claims lodgement. Can I help you lodge a new claim?"
+        },
+        {
+            "role": "user",
+            "time_in_call_secs": 4,
+            "message": "Why do I not have internet? This is ridiculous."
+        },
+        {
+            "role": "agent",
+            "time_in_call_secs": 9,
+            "message": "I'm sorry, but that's not something I can help with here — for internet or account support please call 1300 943 690. Is there anything else about lodging a new claim I can help with?"
+        },
+        {
+            "role": "user",
+            "time_in_call_secs": 16,
+            "message": "Yeah, can I just lodge a claim, please? I have a house. The address is 49 Limestone Avenue, Braddon, and the facade panels were damaged by a delivery truck."
+        }
+    ],
+    "success_condition": "The claimant has resumed lodging a property claim and provided the property address and what happened, but the policy number, date and time of incident, a contact method, and the claimant's first and last name are all still missing. The agent must ask for one of the still-missing fields as an ordinary spoken response. The agent must NOT call end_call, must NOT go silent or produce an empty response, must NOT deliver the closing message ('recorded your details... two business days'), and must NOT say the claim has been lodged or mention a claim number or email.",
+    "success_examples": [
+        {
+            "response": "Got it, a property claim at 49 Limestone Avenue, Braddon — facade panels damaged by a delivery truck. Could I get your policy number to start with?",
+            "type": "success"
+        },
+        {
+            "response": "Thanks for that. Do you know the date and time this happened?",
+            "type": "success"
+        }
+    ],
+    "failure_examples": [
+        {
+            "response": "",
+            "type": "failure"
+        },
+        {
+            "response": "I've recorded your details. Our team will be in touch within two business days.",
+            "type": "failure"
+        },
+        {
+            "response": "Great, that's everything I need. Your claim has been lodged. Goodbye.",
+            "type": "failure"
+        }
+    ]
+}

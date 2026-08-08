@@ -27,9 +27,19 @@
             "role": "user",
             "time_in_call_secs": 45,
             "message": "Yes that's right, J-O-H-N S-M-I-T-H."
+        },
+        {
+            "role": "agent",
+            "time_in_call_secs": 50,
+            "message": "Perfect, thank you. Is there another claim you'd like to lodge today?"
+        },
+        {
+            "role": "user",
+            "time_in_call_secs": 55,
+            "message": "No, that's everything."
         }
     ],
-    "success_condition": "All required vehicle claim fields have now been provided and the claimant has just confirmed the spelling of their name — nothing is missing. The agent should tell the claimant something equivalent to 'I've recorded your details. Our team will be in touch within two business days.' and then call end_call. The agent must NOT say the claim has been lodged, must NOT mention a claim number, and must NOT promise an email confirmation — none of that exists in this flow. The agent must not continue asking for fields that have already been provided, and must not mention transferring or a supervisor.",
+    "success_condition": "All required vehicle claim fields have now been provided, the claimant has confirmed the spelling of their name, and the claimant has just confirmed there is no other claim to lodge (multiple-claims rule) — nothing is missing and nothing further is pending. The agent should tell the claimant something equivalent to 'I've recorded your details. Our team will be in touch within two business days.' and then call end_call. The agent must NOT say the claim has been lodged, must NOT mention a claim number, and must NOT promise an email confirmation — none of that exists in this flow. The agent must not continue asking for fields that have already been provided, must not ask about another claim again (the claimant already answered no), and must not mention transferring or a supervisor.",
     "success_examples": [
         {
             "response": "Thanks John, I've got everything I need. I've recorded your details, and our team will be in touch within two business days.",
