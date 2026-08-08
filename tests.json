@@ -124,6 +124,11 @@
             "config": "test_configs/Claims-Lodgement-Officer-keeps-phone-and-policy-numbers-as-digits-on-voice.json",
             "id": "test_5401kz2hpmpaen3rgf0k9x81ce9g",
             "type": "llm"
+        },
+        {
+            "config": "test_configs/Claims-Lodgement-Officer-resumes-after-off-topic-redirect-without-ending-call.json",
+            "id": "test_2601kzd1y21kfz8v5kqkng0c7x76",
+            "type": "llm"
         }
     ]
 }

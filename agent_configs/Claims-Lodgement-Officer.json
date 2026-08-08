@@ -100,12 +100,12 @@
           "end_call": {
             "type": "system",
             "name": "end_call",
-            "description": "",
+            "description": "Ends the call. STRICTLY FORBIDDEN to call this in the same turn as any spoken text that asks the claimant a question or requests a reply (a missing field, spelling confirmation, card confirmation, or anything else) — the claimant cannot answer after the call has ended, so end_call must never be attached to a question. Call this tool ONLY when, in the same turn, you have already spoken one of: (1) the exact closing line after every required claim field is complete per the closing-condition rule, (2) the emergency script, (3) the wrong-number script, (4) the unresponsive-caller disconnect line after the single 10-second prompt has gone unanswered, or (5) the WhatsApp 1-hour timeout line. Never call this while any required claim field remains uncollected or unconfirmed.",
             "response_timeout_secs": 20,
             "disable_interruptions": false,
             "interruption_mode": "allow",
             "force_pre_tool_speech": false,
-            "pre_tool_speech": "auto",
+            "pre_tool_speech": "force",
             "assignments": [],
             "tool_call_sound_behavior": "auto",
             "tool_error_handling_mode": "auto",
@@ -144,24 +144,7 @@
           "preference": "default"
         },
         "cascade_timeout_seconds": 8,
-        "tools": [
-          {
-            "type": "system",
-            "name": "end_call",
-            "description": "",
-            "response_timeout_secs": 20,
-            "disable_interruptions": false,
-            "interruption_mode": "allow",
-            "force_pre_tool_speech": false,
-            "pre_tool_speech": "auto",
-            "assignments": [],
-            "tool_call_sound_behavior": "auto",
-            "tool_error_handling_mode": "auto",
-            "params": {
-              "system_tool_type": "end_call"
-            }
-          }
-        ]
+        "tools": []
       }
     }
   },
@@ -475,6 +458,9 @@
         },
         {
           "test_id": "test_5401kz2hpmpaen3rgf0k9x81ce9g"
+        },
+        {
+          "test_id": "test_2601kzd1y21kfz8v5kqkng0c7x76"
         }
       ],
       "referenced_tests_ids": [
@@ -502,7 +488,8 @@
         "test_3101kz2g95d1e5fvk3e4fkd4v68a",
         "test_0201kz2g95qce559jenknve5zype",
         "test_3901kz2gz6pmey892jr524tp7nev",
-        "test_5401kz2hpmpaen3rgf0k9x81ce9g"
+        "test_5401kz2hpmpaen3rgf0k9x81ce9g",
+        "test_2601kzd1y21kfz8v5kqkng0c7x76"
       ]
     },
     "archived": false,
@@ -557,10 +544,10 @@
             {
               "is_enabled": true,
               "name": "Claim completeness before closing",
-              "prompt": "Block when the agent's response ends the call, confirms the claim as complete/recorded, moves on to ask about another claim, or calls end_call for a COMPLETED CLAIM (not Emergency, Wrong Number, Unresponsive Caller, or WhatsApp Timeout — those four have their own short scripts and are exempt from this check), WITHOUT the conversation having actually established all required claim fields, OR without the agent having first spoken a closing line equivalent to 'I've recorded your details. Our team will be in touch within two business days.' Required fields: claim type (vehicle or property), what happened, date and time of incident, vehicle registration number OR property address (matching the claim type), incident location (vehicle claims only), a contact method (email or phone), and both first and last name — on a voice call, with spelling explicitly confirmed by the claimant; on a text-only conversation (e.g. WhatsApp, where the claimant's messages are typed text visible verbatim in the transcript), the typed name is exact and spelling confirmation is NOT required. Policy number is best-effort and must NOT block closing if missing. Additionally, on a text-only conversation, block a response that ends the call, speaks the closing line, or moves on to ask about another claim, for a claim whose required fields above are otherwise complete, UNLESS the transcript already shows: (1) a plain text summary card was presented for that specific claim — one 'Label: value' line per captured field, no asterisks, no bullet characters, no headers, no emojis — and (2) the claimant gave an explicit affirmative confirmation of that card in a later message (any clear affirmative reply counts, not a fixed phrase). If the card was presented but the claimant's most recent relevant reply instead flagged a field as wrong, the claim is NOT confirmed — it only becomes confirmed once a full updated card was re-presented and subsequently confirmed. This text-only card-confirmation requirement is separate from, and in addition to, the required-fields check above — data completeness alone is NOT sufficient to close on text-only conversations. Also block a response that says the claim has been 'lodged', mentions a claim number, or promises an email confirmation — none of that exists in this flow. Do not block responses that are still asking questions, still mid-flow (guided or express), that are asking the claimant for missing fields, or that are presenting the text-only summary card itself and asking the claimant to confirm it — only block a response that treats a completed claim as fully done (ends the call, speaks the closing line, or moves on past it) while a required field above is actually absent from the transcript, while a text-only summary card has not yet been presented and confirmed for that claim, or that skips the closing line, or that uses lodged/claim-number/email language.",
+              "prompt": "Block when the agent's response ends the call, confirms the claim as complete/recorded, moves on to ask about another claim, or calls end_call for a COMPLETED CLAIM (not Emergency, Wrong Number, Unresponsive Caller, or WhatsApp Timeout — those four have their own short scripts and are exempt from this check), WITHOUT the conversation having actually established all required claim fields, OR without the agent having first spoken a closing line equivalent to 'I've recorded your details. Our team will be in touch within two business days.' Required fields: claim type (vehicle or property), what happened, date and time of incident, vehicle registration number OR property address (matching the claim type), incident location (vehicle claims only), a contact method (email or phone), and both first and last name — on a voice call, with spelling explicitly confirmed by the claimant; on a text-only conversation (e.g. WhatsApp, where the claimant's messages are typed text visible verbatim in the transcript), the typed name is exact and spelling confirmation is NOT required. Policy number is best-effort and must NOT block closing if missing. Additionally, on a text-only conversation, block a response that ends the call, speaks the closing line, or moves on to ask about another claim, for a claim whose required fields above are otherwise complete, UNLESS the transcript already shows: (1) a plain text summary card was presented for that specific claim — one 'Label: value' line per captured field, no asterisks, no bullet characters, no headers, no emojis — and (2) the claimant gave an explicit affirmative confirmation of that card in a later message (any clear affirmative reply counts, not a fixed phrase). If the card was presented but the claimant's most recent relevant reply instead flagged a field as wrong, the claim is NOT confirmed — it only becomes confirmed once a full updated card was re-presented and subsequently confirmed. This text-only card-confirmation requirement is separate from, and in addition to, the required-fields check above — data completeness alone is NOT sufficient to close on text-only conversations. Also block a response that says the claim has been 'lodged', mentions a claim number, or promises an email confirmation — none of that exists in this flow. ALWAYS block a response that calls end_call while the spoken text also poses a question to the claimant (asking for a missing field, asking for spelling/card confirmation, or any other request for a reply) — the claimant cannot answer a question on a call that has already ended, so this combination is invalid regardless of whether required fields happen to be complete; check this pattern first, independent of the field-completeness reasoning below, since it is a self-contained contradiction the agent should never produce. Do not block responses that are still asking questions, still mid-flow (guided or express), that are asking the claimant for missing fields, or that are presenting the text-only summary card itself and asking the claimant to confirm it — only block a response that treats a completed claim as fully done (ends the call, speaks the closing line, or moves on past it) while a required field above is actually absent from the transcript, while a text-only summary card has not yet been presented and confirmed for that claim, that bundles end_call with an unanswered question, or that skips the closing line, or that uses lodged/claim-number/email language.",
               "execution_mode": "blocking",
               "model": "gemini-2.5-flash-lite",
-              "history_message_count": 0,
+              "history_message_count": 10,
               "history_include_tool_calls": false,
               "trigger_action": {
                 "type": "retry",

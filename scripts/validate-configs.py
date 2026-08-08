@@ -163,6 +163,37 @@ for entry in agent_list:
 if len(errors) == errors_before:
     ok("all webhooks entries are well-formed")
 
+# --- 8. Check built_in_tools have descriptions and aren't duplicated in tools[] ---
+print("\nBuilt-in tool configuration check")
+errors_before = len(errors)
+for entry in agent_list:
+    config_path = ROOT / entry["config"]
+    if not config_path.exists():
+        continue
+    data = json.loads(config_path.read_text())
+    prompt = data.get("conversation_config", {}).get("agent", {}).get("prompt", {})
+    built_in_tools = prompt.get("built_in_tools", {}) or {}
+    tools = prompt.get("tools", []) or []
+    tools_by_name = {t["name"] for t in tools if isinstance(t, dict) and "name" in t}
+    for tool_name, tool_cfg in built_in_tools.items():
+        if not tool_cfg:
+            continue
+        description = tool_cfg.get("description")
+        if not description or not description.strip():
+            fail(
+                f"{entry['config']}: built_in_tools.{tool_name}.description is empty — "
+                "the LLM gets no tool-level guidance on when to call it, only whatever the "
+                "system prompt happens to say"
+            )
+        if tool_name in tools_by_name:
+            fail(
+                f"{entry['config']}: '{tool_name}' is declared in both built_in_tools and "
+                "prompt.tools[] — remove the tools[] duplicate, built_in_tools is the single "
+                "source of truth for system tools"
+            )
+if len(errors) == errors_before:
+    ok("no empty built_in_tools descriptions or tools[] duplicates")
+
 # --- Summary ---
 print(f"\n{'='*40}")
 if errors:
