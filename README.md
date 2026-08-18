@@ -33,7 +33,7 @@ Lodgement Officer — who:
 5. Handles edge cases: emergencies (redirects to 000), wrong numbers,
    non-claims enquiries, small talk, unresponsive callers, WhatsApp session
    timeouts
-6. Once every required field is genuinely present in the conversation,
+6. Once every required field is present in the conversation,
    delivers a fixed closing line and ends the call — it never says the claim
    was "lodged," never gives out a claim number, and never promises an email
    itself, because none of that happens in this repo (see below)
