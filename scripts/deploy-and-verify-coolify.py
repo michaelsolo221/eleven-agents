@@ -34,8 +34,8 @@ import urllib.request
 
 COOLIFY_HOST = os.environ.get("COOLIFY_HOST", "https://app.coolify.io")
 COOLIFY_TOKEN = os.environ.get("COOLIFY_TOKEN")
-APP_UUID = "k4k417px3sezrd3wvvimygs2"
-VERSION_URL = "https://11-p.michael-lo.com/version"
+APP_UUID = os.environ.get("COOLIFY_APP_UUID")
+VERSION_URL = os.environ.get("COOLIFY_VERSION_URL")
 
 # Coolify Cloud's edge blocks urllib's default "Python-urllib/x.y" User-Agent
 # outright (403, before the request reaches the app) — confirmed empirically
@@ -162,6 +162,12 @@ def main():
 
     if not COOLIFY_TOKEN:
         print("COOLIFY_TOKEN not set — cannot trigger or verify a deploy")
+        sys.exit(1)
+    if not APP_UUID:
+        print("COOLIFY_APP_UUID not set — cannot trigger or verify a deploy")
+        sys.exit(1)
+    if not VERSION_URL:
+        print("COOLIFY_VERSION_URL not set — cannot verify the deploy")
         sys.exit(1)
     if not args.expected_sha:
         print("--expected-sha not given and GITHUB_SHA not set")

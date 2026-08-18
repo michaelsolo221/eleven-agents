@@ -6,25 +6,31 @@ This document describes the deployment architecture, configuration details, and 
 
 ## 1. Coolify Infrastructure Registry
 
-| Property | Value / UUID | Notes |
-| :--- | :--- | :--- |
-| **Coolify Host** | `https://app.coolify.io` | Cloud management dashboard |
-| **Target Server** | `fb-messenger-oci` (`163.192.27.254`) | Server UUID: `m04wsokkcgww4ows4gocs84g` |
-| **Project** | `fb-messenger` | Project UUID: `g8cgwcc0kgk0og4s0kokckw0` |
-| **Environment** | `production` | Environment UUID: `kwook4w4gwkko8g48gkko44w` |
-| **Application Name** | `eleven-agents-webhook` | Application UUID: `k4k417px3sezrd3wvvimygs2` |
-| **Configured FQDN** | `https://11-p.michael-lo.com` | Traefik reverse proxy endpoint |
-| **Base Directory** | `/server` | Root of Python `uv` app & Dockerfile |
-| **Exposed Port** | `8000` | FastAPI container application port |
+Server, project, environment, and application UUIDs, plus the VPS IP and
+configured FQDN, are **deliberately not committed here** — they're
+infrastructure-identifying details with no reason to sit in a git history
+that outlives any single deployment. Look them up directly in the Coolify
+dashboard (Servers / Projects / Applications) when you need them.
+
+| Property | Notes |
+| :--- | :--- |
+| **Coolify Host** | `https://app.coolify.io` — cloud management dashboard |
+| **Target Server** | `fb-messenger-oci` — server/project/environment UUIDs live in the Coolify dashboard |
+| **Project** | `fb-messenger` |
+| **Environment** | `production` |
+| **Application Name** | `eleven-agents-webhook` — its UUID is stored as the `COOLIFY_APP_UUID` GitHub Actions repo variable (`gh variable list`), consumed by `scripts/deploy-and-verify-coolify.py` |
+| **Configured FQDN** | Stored as the `COOLIFY_VERSION_URL` repo variable (`.../version`) — the same host serves `/health` and `/webhook/post-call` |
+| **Base Directory** | `/server` — root of Python `uv` app & Dockerfile |
+| **Exposed Port** | `8000` — FastAPI container application port |
 
 ---
 
 ## 2. Authentication & Deploy Keys
 
-The application builds from the private repository `michaelsolo221/eleven-agents.git` using a dedicated SSH deploy key:
-
-* **GitHub Deploy Key**: `Coolify Deploy Key` (ID: `158473763`, read-only access on GitHub repository).
-* **Coolify Private Key**: Registered in Coolify under Private Key UUID `zqe4pwvqbpx6zw7uwyee2a3m`.
+The application builds from this repository using a dedicated, read-only
+SSH deploy key registered in Coolify (Coolify → Sources). Key ID and the
+Coolify Private Key UUID are visible in the Coolify dashboard — not
+committed here, same reasoning as §1.
 
 ---
 
@@ -34,7 +40,7 @@ The following secrets are managed within Coolify environment variables (`PATCH /
 
 * `ELEVENLABS_WEBHOOK_SECRET`: Secret key used to verify incoming `ElevenLabs-Signature` headers (`v0` scheme, 30-minute timestamp tolerance).
 * `RESEND_API_KEY`: API key for delivering HTML email notifications via the Resend API.
-* `FROM_EMAIL`: Sender address for Resend email notifications. Must be a verified domain in Resend (no sandbox fallback). **Live in production since 2026-07-29 (issue #55)** as `lodgement@claims.michael-lo.com`; the `onboarding@resend.dev` sandbox address from initial setup (ADR 0006) is no longer used anywhere.
+* `FROM_EMAIL`: Sender address for Resend email notifications. Must be a verified domain in Resend (no sandbox fallback). **Live in production since 2026-07-29 (issue #55)** on a verified custom domain; the `onboarding@resend.dev` sandbox address from initial setup (ADR 0006) is no longer used anywhere.
 * `NOTIFICATION_EMAIL`: Comma-separated list of recipient email addresses for post-call summaries and transcripts.
 
 ---
@@ -44,8 +50,10 @@ The following secrets are managed within Coolify environment variables (`PATCH /
 Deployments can be triggered programmatically via the Coolify REST API:
 
 ```bash
-# Trigger deployment for the microservice
-curl -X POST "https://app.coolify.io/api/v1/deploy?uuid=k4k417px3sezrd3wvvimygs2" \
+# Trigger deployment for the microservice — $COOLIFY_APP_UUID is the
+# COOLIFY_APP_UUID GitHub Actions repo variable (gh variable list), or
+# look the UUID up in the Coolify dashboard
+curl -X POST "https://app.coolify.io/api/v1/deploy?uuid=$COOLIFY_APP_UUID" \
   -H "Authorization: Bearer <COOLIFY_API_TOKEN>"
 ```
 
@@ -63,17 +71,18 @@ curl -s -H "Authorization: Bearer <COOLIFY_API_TOKEN>" \
 The microservice includes a lightweight `/health` check endpoint that returns HTTP 200 OK without requiring authentication:
 
 ```bash
-# Verify health directly against the server IP (with Host header)
-curl -k -H "Host: 11-p.michael-lo.com" https://163.192.27.254/health
+# Verify health directly against the server IP (with Host header) — get
+# the IP and FQDN from the Coolify dashboard
+curl -k -H "Host: <configured-fqdn>" https://<vps-ip>/health
 # Response: {"status":"ok"}
 ```
 
 ### Verifying Deployed Version
 
-`/version` reports the git commit and app version baked into the running image, so you can confirm a deploy actually picked up the latest push instead of trusting the dashboard:
+`/version` reports the git commit and app version baked into the running image, so you can confirm a deploy actually picked up the latest push instead of trusting the dashboard. `$COOLIFY_VERSION_URL` is the `COOLIFY_VERSION_URL` GitHub Actions repo variable:
 
 ```bash
-curl https://11-p.michael-lo.com/version
+curl "$COOLIFY_VERSION_URL"
 # Response: {"git_sha":"<commit sha>","app_version":"0.1.0"}
 ```
 
@@ -86,6 +95,6 @@ curl https://11-p.michael-lo.com/version
 To route external webhooks (e.g. from ElevenLabs) to the Coolify server:
 
 * **Record Type**: `A`
-* **Host / Subdomain**: `11-p` (for `11-p.michael-lo.com`)
-* **Target IP**: `163.192.27.254` (VPS Server IP)
-* **Live Webhook Endpoint**: `https://11-p.michael-lo.com/webhook/post-call`
+* **Host / Subdomain**: see the Coolify dashboard's domain settings for the app
+* **Target IP**: the VPS server IP — see the Coolify dashboard, not committed here
+* **Live Webhook Endpoint**: `https://<configured-fqdn>/webhook/post-call`

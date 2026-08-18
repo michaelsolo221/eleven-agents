@@ -236,4 +236,10 @@ jobs:
       - name: Deploy and verify Coolify
         env:
           COOLIFY_TOKEN: ${{ secrets.COOLIFY_TOKEN }}
+          # App UUID and live version-check URL are Coolify resource
+          # identifiers, not secrets, but kept out of tracked source
+          # deliberately (issue: repo history/PII scrub). Set via
+          # `gh variable set` — see docs/server-coolify-deployment.md.
+          COOLIFY_APP_UUID: ${{ vars.COOLIFY_APP_UUID }}
+          COOLIFY_VERSION_URL: ${{ vars.COOLIFY_VERSION_URL }}
         run: python3 scripts/deploy-and-verify-coolify.py
